@@ -1,0 +1,12 @@
+.vscode/
+.idea/
+venv/
+env/
+__pypackages__/
+__pycache__/
+*.out
+*.log
+*.env
+*.pre-commit-config.yaml
+*.sql
+*.flake8

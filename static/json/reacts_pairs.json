@@ -1,0 +1,35 @@
+{
+  "DM_choice_categories": {
+    "\u2753": 754058918401015988,
+    "\ud83c\udf4e": 754059616383402035,
+    "\ud83d\udcbb": 754059745500987473,
+    "\ud83d\udcca": 754061901390151791,
+    "\ud83d\udcd0": 754058950986432582,
+    "\ud83d\udcd5": 754066685178413056,
+    "\ud83d\udcd7": 754065359585280090,
+    "\ud83d\udcd9": 754059050098098237,
+    "\ud83d\udcdc": 754059254234742816,
+    "\ud83d\udd27": 754059707072643182,
+    "\ud83d\ude80": 754059531314659490,
+    "\ud83e\uddec": 754063162009190511
+  },
+  "DM_choice_roles_G1": {
+    "\ud83d\udcca": "Maths Expertes",
+    "\ud83d\udcd5": "Allemand",
+    "\ud83d\udcd9": "Espagnol",
+    "\ud83d\ude80": "SI Europ\u00e9enne"
+  },
+  "DM_choice_roles_G2": {
+    "\ud83d\udcbb": "NSI",
+    "\ud83d\udcca": "Maths Expertes",
+    "\ud83d\udcd5": "Allemand",
+    "\ud83d\udcd9": "Espagnol",
+    "\ud83d\udd27": "SI",
+    "\ud83d\ude80": "SI Europ\u00e9enne"
+  },
+  "guild_choice": {
+    "\ud83c\udf93": "Prof",
+    "\ud83e\uddd1\ud83c\udffb": "\u00c9l\u00e8ve G1",
+    "\ud83e\uddd1\ud83c\udffc": "\u00c9l\u00e8ve G2"
+  }
+}
