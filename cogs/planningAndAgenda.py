@@ -246,7 +246,8 @@ class PlanningAndAgendaModel:
         if regex:
             day, month = regex.group(1), regex.group(2)
             try:
-                date_user = datetime.date(year=2020, month=int(month), day=int(day))
+                year = 2021 if int(month) < 11 else 2020
+                date_user = datetime.date(year=year, month=int(month), day=int(day))
             except ValueError:
                 self.custom_response = "Vous avez mis des valeurs invalides"
                 return
