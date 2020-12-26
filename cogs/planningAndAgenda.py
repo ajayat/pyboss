@@ -39,7 +39,7 @@ async def update_message_ref(fieldname, message: discord.Message):
         json.dump(messages_id, f2)
     try:
         ex_message = await message.channel.fetch_message(ex_message_id)
-    except Exception:
+    except (discord.NotFound, discord.HTTPException):
         return
     await ex_message.delete()
 
@@ -113,7 +113,7 @@ class PlanningAndAgendaModel:
         else:
             columns = ",".join(self.answers.keys())
             values = '","'.join(self.answers.values())
-            sql = f'INSERT INTO {self.table} ({columns}) VALUES ("{values}")'
+            sql = f"INSERT INTO {self.table} ({columns}) VALUES ({repr({values})})"
             database.execute(sql)
             await self.update_data()
         finally:
@@ -149,7 +149,7 @@ class PlanningAndAgendaModel:
         else:
             sql = (
                 f"DELETE FROM {self.table} "
-                f"WHERE matter=\"{self.answers['matter']}\" AND date=\"{self.answers['date']}\""
+                f"WHERE matter={repr(self.answers['matter'])} AND date={repr(self.answers['date'])}"
             )
             database.execute(sql)
             await self.update_data()
