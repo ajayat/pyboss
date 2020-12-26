@@ -10,6 +10,10 @@ from database import test_connection
 load_dotenv()
 test_connection()
 
+# Change cwd if the script ran from another directory
+dir_path = os.path.dirname(os.path.realpath(__file__))
+os.chdir(dir_path)
+
 TOKEN = os.getenv("DISCORD_TOKEN")
 APP_NAME = os.getenv("APP_NAME")
 OWNER_ID = int(os.getenv("OWNER_ID"))
