@@ -185,8 +185,8 @@ class Roles(commands.Cog):
                 embed = discord.Embed(
                     title=f"Vous êtes 'fin prêt, cher {mod_member.main_role}!",
                     colour=0xFF22FF,
-                    description="Vos choix ont été pris en compte, vous devez avoir à \
-                    présent accès aux salons!",
+                    description="Vos choix ont été pris en compte, vous devez avoir à"
+                    "présent accès aux salons!",
                 )
                 await mod_member.send(embed=embed)
                 mod_member.validate_state = 2

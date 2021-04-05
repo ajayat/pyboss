@@ -90,7 +90,7 @@ class PlanningAndAgendaModel:
                 await self.gen_question(
                     'Voulez-vous ajouter des infos supplémentaires? ("votre contenu" ou "non")',
                     self._check_description,
-                    timeout=60,
+                    timeout=120,
                 )
             else:
                 await self.gen_question(
@@ -112,14 +112,16 @@ class PlanningAndAgendaModel:
             )
         else:
             columns = ",".join(self.answers.keys())
-            values = '","'.join(self.answers.values())
-            sql = f"INSERT INTO {self.table} ({columns}) VALUES ({repr({values})})"
+            values = ",".join(map(repr, self.answers.values()))
+            sql = f"INSERT INTO {self.table} ({columns}) VALUES ({values})"
             database.execute(sql)
             await self.update_data()
         finally:
             for msg in self.traces:
-                if msg:
+                try:
                     await msg.delete()
+                except discord.errors.NotFound:
+                    pass
 
     async def remove_procedure(self, ctx):
         await ctx.message.delete()
@@ -136,7 +138,7 @@ class PlanningAndAgendaModel:
             msg2 = await ctx.channel.send("De quel jour? (Ex: JJ/MM)")
             self.traces.append(msg2)
             resp2 = await self.bot.wait_for(
-                "message", timeout=60, check=self._check_date
+                "message", timeout=120, check=self._check_date
             )
             await msg2.delete()
             await resp2.delete()
@@ -158,7 +160,7 @@ class PlanningAndAgendaModel:
                 if msg:
                     await msg.delete()
 
-    async def gen_question(self, question, check, timeout=30):
+    async def gen_question(self, question, check, timeout=60):
         msg_question = await self.channel.send(question)
         self.traces.append(msg_question)
         message = await self.bot.wait_for("message", timeout=timeout, check=check)
