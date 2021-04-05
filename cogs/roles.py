@@ -44,7 +44,7 @@ class Roles(commands.Cog):
 
         text = f"{member.mention} a rejoint le serveur {member.guild.name}!"
         embed = discord.Embed(
-            title="Arrivée d'un membre!", colour=0xff22ff, description=text
+            title="Arrivée d'un membre!", colour=0xFF22FF, description=text
         )
         embed.set_thumbnail(url=member.avatar_url)
         embed.set_author(name=member.name, url=member.avatar_url)
@@ -60,7 +60,7 @@ class Roles(commands.Cog):
 
         with open(f"static/txt/{name}.txt", encoding="utf-8") as content:
             embed = discord.Embed(
-                title="Bienvenue!", colour=0xff22ff, description=content.read()
+                title="Bienvenue!", colour=0xFF22FF, description=content.read()
             )
             embed.set_thumbnail(url=ctx.guild.icon_url)
             embed.set_footer(
@@ -159,7 +159,7 @@ class Roles(commands.Cog):
         """Update sub roles list in json file"""
         embed = discord.Embed(
             title="Confirmation",
-            colour=0xff22ff,
+            colour=0xFF22FF,
             description="Voulez-vous valider votre sélection?",
         )
         embed.set_footer(text="This message will be disappear in 60 seconds.")
@@ -184,7 +184,7 @@ class Roles(commands.Cog):
                 await mod_member.add_sub_roles()
                 embed = discord.Embed(
                     title=f"Vous êtes 'fin prêt, cher {mod_member.main_role}!",
-                    colour=0xff22ff,
+                    colour=0xFF22FF,
                     description="Vos choix ont été pris en compte, vous devez avoir à \
                     présent accès aux salons!",
                 )

@@ -18,7 +18,7 @@ def quiz_channel(ctx):
 
 class Question:
 
-    COLOURS = [0xffff00, 0x0000ff, 0xff0000, 0xff75ff, 0x00ff00, 0x757575, 0x75ff75]
+    COLOURS = [0xFFFF00, 0x0000FF, 0xFF0000, 0xFF75FF, 0x00FF00, 0x757575, 0x75FF75]
     TIMEOUT_MESSAGES = [
         "Le temps est écoulé!",
         "ding ding it's finish",
@@ -217,7 +217,7 @@ class Quiz(commands.Cog):
             description += f"{rang}  {player} : {score} points \n"
 
         await ctx.send(
-            embed=discord.Embed(title=titre, colour=0x00ff00, description=description)
+            embed=discord.Embed(title=titre, colour=0x00FF00, description=description)
         )
 
     @commands.command(name="question_add", aliases=["q_add"])
@@ -278,7 +278,7 @@ class Quiz(commands.Cog):
             mod_member.XP += 500
             embed = discord.Embed(
                 title="Merci!",
-                colour=0x5a546c,
+                colour=0x5A546C,
                 description=f"{ctx.author.mention} a ajouté une nouvelle question!",
             )
             embed.set_thumbnail(url=ctx.author.avatar_url)

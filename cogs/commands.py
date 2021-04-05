@@ -33,7 +33,7 @@ class Commands(commands.Cog):
         """
         member = ctx.guild.get_member(int(mention[3:-1])) if mention else ctx.author
         mod_member = get_mod_member(self.bot, member)
-        embed = discord.Embed(title="User profile", colour=0xffa325)
+        embed = discord.Embed(title="User profile", colour=0xFFA325)
         embed.set_author(name=member.name)
         embed.set_thumbnail(url=member.avatar_url)
         embed.add_field(name="Name", value=member.mention, inline=True)

@@ -29,7 +29,7 @@ class Suggestion(commands.Cog):
         with open("static/txt/suggestions_rules.txt", encoding="utf-8") as f:
             content = f.read()
         embed = discord.Embed(
-            title="Fonctionnement des suggestions", description=content, colour=0xff66ff
+            title="Fonctionnement des suggestions", description=content, colour=0xFF66FF
         )
         embed.set_thumbnail(url=ctx.guild.icon_url)
         embed.set_footer(
@@ -79,7 +79,7 @@ class Suggestion(commands.Cog):
 
             if decisive_emoji == "✅":
                 embed = discord.Embed(
-                    colour=0xff22bb,
+                    colour=0xFF22BB,
                     title="Suggestion acceptée!",
                     description=f"**Félicitations!** La suggestion de **{suggestion.author.name}** "
                     f"pour laquelle vous avez voté a été acceptée:\n\n > {citation} \n\n"
@@ -88,7 +88,7 @@ class Suggestion(commands.Cog):
                 )
             else:
                 embed = discord.Embed(
-                    colour=0xff22bb,
+                    colour=0xFF22BB,
                     title="Suggestion refusée!",
                     description=f"**Mauvaise nouvelle...** "
                     f"la suggestion de **{suggestion.author.name}** pour laquelle vous avez voté "

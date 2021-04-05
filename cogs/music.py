@@ -72,7 +72,7 @@ class Music(commands.Cog):
             embed = discord.Embed(
                 title="",
                 description=f"Morceau en cours: {self.musics[ctx.guild][0].url}",
-                colour=0x54fa48,
+                colour=0x54FA48,
             )
             embed.set_author(name=ctx.author.name)
             await ctx.send(embed=embed)
