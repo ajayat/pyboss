@@ -3,7 +3,7 @@ from itertools import cycle
 import discord
 from discord.ext import commands, tasks
 
-import database
+import database as db
 
 
 class Commands(commands.Cog):
@@ -45,9 +45,8 @@ class Commands(commands.Cog):
             else ctx.channel.name
         )
         if ctx.author.id != self.bot.user.id:
-            sql = f"INSERT INTO messages (member_id, channel, content) \
-                    VALUES ({ctx.author.id}, {repr(channel)}, {repr(ctx.content)})"
-            database.execute(sql)
+            sql = "INSERT INTO messages (member_id, channel, content) VALUES (%s,%s,%s)"
+            db.execute(sql, (ctx.author.id, channel, ctx.content))
 
 
 def setup(bot):

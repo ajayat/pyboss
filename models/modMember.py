@@ -39,8 +39,8 @@ class _ModMember:
         async function
         """
         new_role = discord.utils.get(self.member.guild.roles, name=new_role_name)
-        sql = f"UPDATE members SET main_role='{new_role_name}' WHERE member_id={self.member.id}"
-        database.execute(sql)
+        sql = "UPDATE members SET main_role=%s WHERE member_id=%s"
+        database.execute(sql, (new_role_name, self.member.id))
 
         await self.member.remove_roles(self.main_role, reason="Changing the main role")
         self.main_role = new_role
@@ -137,8 +137,8 @@ class _ModMember:
 
     def place_in_blacklist(self, *, days=1, minutes=0):
         end_date = datetime.now() + timedelta(days=days, minutes=minutes)
-        sql = f"UPDATE members SET blacklist='{end_date}' WHERE member_id={self.member.id}"
-        database.execute(sql)
+        sql = "UPDATE members SET blacklist=%s WHERE member_id=%s"
+        database.execute(sql, (end_date, self.member.id))
         Timer((end_date - datetime.now()).seconds, self._remove_from_blacklist).start()
 
     def _remove_from_blacklist(self):

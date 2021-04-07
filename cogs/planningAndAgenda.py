@@ -7,7 +7,7 @@ import re
 import discord
 from discord.ext import commands
 
-import database
+import database as db
 from models.modMember import get_mod_member
 
 with open("static/json/channels_tables.json") as f:
@@ -114,7 +114,7 @@ class PlanningAndAgendaModel:
             columns = ",".join(self.answers.keys())
             values = ",".join(map(repr, self.answers.values()))
             sql = f"INSERT INTO {self.table} ({columns}) VALUES ({values})"
-            database.execute(sql)
+            db.execute(sql)
             await self.update_data()
         finally:
             for msg in self.traces:
@@ -149,16 +149,15 @@ class PlanningAndAgendaModel:
                 f"n'étaient pas correct. {self.custom_response}"
             )
         else:
-            sql = (
-                f"DELETE FROM {self.table} "
-                f"WHERE matter={repr(self.answers['matter'])} AND date={repr(self.answers['date'])}"
-            )
-            database.execute(sql)
+            sql = f"DELETE FROM {self.table} WHERE matter=%s AND date=%s"
+            db.execute(sql, (self.answers["matter"], self.answers["date"]))
             await self.update_data()
         finally:
             for msg in self.traces:
-                if msg:
+                try:
                     await msg.delete()
+                except discord.errors.NotFound:
+                    pass
 
     async def gen_question(self, question, check, timeout=60):
         msg_question = await self.channel.send(question)
@@ -172,20 +171,19 @@ class PlanningAndAgendaModel:
         # fetch the database to get the list of rows ordered by date
         sql = (
             f"SELECT * FROM {self.table} "
-            f'WHERE class="{self.table_class}" '
-            f"ORDER BY date ASC"
+            f"WHERE class='{self.table_class}' AND date>=NOW() ORDER BY date ASC"
         )
-        result = database.execute(sql, dictionary=True, fetchall=True)
-        result = [item for item in result if item["date"] >= datetime.date.today()]
-        new_day, message = None, ""
+        result = db.execute(sql, dictionary=True, fetchall=True)
+
+        next_date, message = None, ""
         for row in result:
             date = row["date"]
-            current_day = self.DAYS[date.weekday()]
 
-            if current_day != new_day:
-                new_day = current_day
+            if date != next_date:
+                next_date = date
+                day = self.DAYS[date.weekday()]
                 month = self.MONTHS[int(f"{date:%m}") - 1]
-                message += f"\n__Pour le **{new_day}** {date:%d} {month}:__\n"
+                message += f"\n__Pour le **{day}** {date:%d} {month}:__\n"
 
             description = (
                 f"*({row['description']})*" if bool(row["description"]) else ""
@@ -205,7 +203,7 @@ class PlanningAndAgendaModel:
         )
         new_msg = await self.channel.send(embed=embed)
 
-        await update_message_ref(self.table + "_" + self.table_class, new_msg)
+        await update_message_ref(f"{self.table}_{self.table_class}", new_msg)
 
     # ------------------------------ CHECKS -----------------------------
 

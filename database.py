@@ -26,11 +26,14 @@ def test_connection():
     return False
 
 
-def execute(sql, dictionary=False, fetchone=False, fetchall=False):
+def execute(sql, data=None, dictionary=False, fetchone=False, fetchall=False):
     with mysql.connector.connect(**_CONFIG) as cnx:
         cursor = cnx.cursor(dictionary=dictionary, buffered=True)
         try:
-            cursor.execute(sql)
+            if data:  # parametrized query
+                cursor.execute(sql, data)
+            else:
+                cursor.execute(sql)
             cnx.commit()
         except mysql.connector.Error as error:
             logging.error(f"SQL request {sql} has failed: {error}\n")

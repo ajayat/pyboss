@@ -3,6 +3,7 @@ import itertools
 import json
 import logging
 import random
+import string
 
 import discord
 from discord.ext import commands
@@ -226,8 +227,6 @@ class Quiz(commands.Cog):
         """
         Ajouter une question dans la base de donnée (procedure)
         """
-        import string
-
         await ctx.message.delete()
 
         async def send_question(question, timeout=60.0):
@@ -263,16 +262,18 @@ class Quiz(commands.Cog):
                     p = p.rstrip("* ")
                 propositions[i] = f"{letter}) {p}"
 
-            try:
-                assert response is not None
-                propositions = "\n".join(propositions)
-                sql = (
-                    f"INSERT INTO quiz (author, theme, question, propositions, response)"
-                    f"VALUES ({ctx.author.name}, {theme}, {question}, {propositions}, {response})"
+            if not response:
+                logging.error(
+                    f"The question {question} hasn't response or propositions"
                 )
-                database.execute(repr(sql))
-            except NameError as e:
-                logging.error(f"The question {question} isn't correct", e)
+            propositions = "\n".join(propositions)
+            sql = (
+                "INSERT INTO quiz (author, theme, question, propositions, response) "
+                "VALUES (%s, %s, %s, %s, %s)"
+            )
+            database.execute(
+                sql, (ctx.author.name, theme, question, propositions, response)
+            )
 
             mod_member = get_mod_member(self.bot, ctx.author)
             mod_member.XP += 500
