@@ -32,7 +32,7 @@ class Roles(commands.Cog):
         """
         if mod_member := get_mod_member(self.bot, member):
             await member.add_roles(
-                mod_member.main_role,
+                mod_member.top_role,
                 reason="The user was already register, re-attribute the main role",
             )
             await mod_member.add_sub_roles()
@@ -44,7 +44,7 @@ class Roles(commands.Cog):
 
         text = f"{member.mention} a rejoint le serveur {member.guild.name}!"
         embed = discord.Embed(
-            title="Arrivée d'un membre!", colour=0xff22ff, description=text
+            title="Arrivée d'un membre!", colour=0xFF22FF, description=text
         )
         embed.set_thumbnail(url=member.avatar_url)
         embed.set_author(name=member.name, url=member.avatar_url)
@@ -60,7 +60,7 @@ class Roles(commands.Cog):
 
         with open(f"static/txt/{name}.txt", encoding="utf-8") as content:
             embed = discord.Embed(
-                title="Bienvenue!", colour=0xff22ff, description=content.read()
+                title="Bienvenue!", colour=0xFF22FF, description=content.read()
             )
             embed.set_thumbnail(url=ctx.guild.icon_url)
             embed.set_footer(
@@ -97,7 +97,7 @@ class Roles(commands.Cog):
         mod_member = get_mod_member(self.bot, payload.member)
         try:
             role_name = self.reacts_pairs["guild_choice"][payload.emoji.name]
-            await mod_member.update_main_role(role_name)
+            await mod_member.update_top_role(role_name)
         except KeyError:
             await mod_member.dm_channel.send(
                 f"{mod_member.mention} Cette réaction est invalide"
@@ -107,7 +107,7 @@ class Roles(commands.Cog):
                 f"The user {mod_member.name} was not registered in members table of database"
             )
         else:
-            fieldname = self.fieldnames.get(mod_member.main_role.name)
+            fieldname = self.fieldnames.get(mod_member.top_role.name)
             message = await self.send_choice(mod_member, fieldname)
             mod_member.dm_choice_msg_id = message.id
             # delete the roles in sub_roles list if the user already choice in
@@ -134,7 +134,7 @@ class Roles(commands.Cog):
         else:
             return
 
-        fieldname = self.fieldnames.get(mod_member.main_role.name)
+        fieldname = self.fieldnames.get(mod_member.top_role.name)
         try:
             emoji_value = self.reacts_pairs[fieldname][payload.emoji.name]
         except KeyError:
@@ -159,7 +159,7 @@ class Roles(commands.Cog):
         """Update sub roles list in json file"""
         embed = discord.Embed(
             title="Confirmation",
-            colour=0xff22ff,
+            colour=0xFF22FF,
             description="Voulez-vous valider votre sélection?",
         )
         embed.set_footer(text="This message will be disappear in 60 seconds.")
@@ -183,8 +183,8 @@ class Roles(commands.Cog):
             if str(reaction.emoji) == "✅":
                 await mod_member.add_sub_roles()
                 embed = discord.Embed(
-                    title=f"Vous êtes 'fin prêt, cher {mod_member.main_role}!",
-                    colour=0xff22ff,
+                    title=f"Vous êtes 'fin prêt, cher {mod_member.top_role}!",
+                    colour=0xFF22FF,
                     description="Vos choix ont été pris en compte, vous devez avoir à \
                     présent accès aux salons!",
                 )

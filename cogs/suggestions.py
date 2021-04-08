@@ -4,7 +4,7 @@ from datetime import datetime
 import discord
 from discord.ext import commands
 
-import database
+import database as db
 
 OWNER_ID = int(os.getenv("OWNER_ID"))
 
@@ -29,7 +29,7 @@ class Suggestion(commands.Cog):
         with open("static/txt/suggestions_rules.txt", encoding="utf-8") as f:
             content = f.read()
         embed = discord.Embed(
-            title="Fonctionnement des suggestions", description=content, colour=0xff66ff
+            title="Fonctionnement des suggestions", description=content, colour=0xFF66FF
         )
         embed.set_thumbnail(url=ctx.guild.icon_url)
         embed.set_footer(
@@ -46,7 +46,7 @@ class Suggestion(commands.Cog):
     @commands.Cog.listener("on_raw_reaction_add")
     async def decisive_reaction(self, payload):
         """
-        Calling when the owner add a reaction
+        Called when the owner add a reaction
         """
         channel = self.bot.get_channel(payload.channel_id)
         if payload.user_id != OWNER_ID or "suggestion" not in channel.name:
@@ -54,11 +54,8 @@ class Suggestion(commands.Cog):
 
         message = await channel.fetch_message(payload.message_id)
         if str(payload.emoji) == "✅":
-            sql = (
-                f"""INSERT INTO suggestions (author, description) """
-                f"""VALUES ("{message.author.name}", "{message.content}")"""
-            )
-            database.execute(sql)
+            sql = "INSERT INTO suggestions (author, description) VALUES (%s, %s)"
+            db.execute(sql, (message.author.name, message.content))
 
         for reaction in message.reactions:
             if str(reaction.emoji) == "✅":
@@ -79,7 +76,7 @@ class Suggestion(commands.Cog):
 
             if decisive_emoji == "✅":
                 embed = discord.Embed(
-                    colour=0xff22bb,
+                    colour=0xFF22BB,
                     title="Suggestion acceptée!",
                     description=f"**Félicitations!** La suggestion de **{suggestion.author.name}** "
                     f"pour laquelle vous avez voté a été acceptée:\n\n > {citation} \n\n"
@@ -88,7 +85,7 @@ class Suggestion(commands.Cog):
                 )
             else:
                 embed = discord.Embed(
-                    colour=0xff22bb,
+                    colour=0xFF22BB,
                     title="Suggestion refusée!",
                     description=f"**Mauvaise nouvelle...** "
                     f"la suggestion de **{suggestion.author.name}** pour laquelle vous avez voté "
