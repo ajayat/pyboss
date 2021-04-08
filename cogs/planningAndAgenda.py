@@ -31,12 +31,10 @@ async def update_message_ref(fieldname, message: discord.Message):
     """
     update id of agenda or planning message in messages_id.json file
     """
-    with open("static/json/messages_id.json") as f1:
-        messages_id = json.load(f1)
-        ex_message_id = messages_id[fieldname]
-        messages_id[fieldname] = message.id
-    with open("static/json/messages_id.json", "w") as f2:
-        json.dump(messages_id, f2)
+    sql = f"SELECT message_id FROM specials WHERE name={fieldname}"
+    ex_message_id = db.execute(sql, fetchone=True)
+    sql = f"UPDATE specials SET message_id={message.id} WHERE name={fieldname}"
+    db.execute(sql)
     try:
         ex_message = await message.channel.fetch_message(ex_message_id)
     except (discord.NotFound, discord.HTTPException):
@@ -202,7 +200,7 @@ class PlanningAndAgendaModel:
         )
         new_msg = await self.channel.send(embed=embed)
 
-        await update_message_ref(self.table + "_" + self.table_class, new_msg)
+        await update_message_ref(f"{self.table}_{self.table_class}", new_msg)
 
     # ------------------------------ CHECKS -----------------------------
 
@@ -271,28 +269,19 @@ class PlanningAndAgendaModel:
     def _check_hours(self, msg):
         try:
             regex = re.match(
-                r"^((\d{1,3})[hH]?\d{,2})[-\sàa;/:]*((\d{1,2})[hH]?\d{,2})?$",
+                r"^(?P<start>\d{1,3})[hH]?[-àa; /:]*(?P<end>\d{1,2})?[hH]?$",
                 msg.content,
             )
-            starthour, hour, endhour, hour_only_end = (
-                regex.group(1),
-                int(regex.group(2)),
-                regex.group(3),
-                regex.group(4),
-            )
+            starthour, endhour = map(int, (regex.group("start"), regex.group("end")))
         except KeyError:
             self.custom_response = "Votre format de plage horaire est invalide."
         else:
-            if hour < 24 and (not hour_only_end or int(hour_only_end) < 24):
+            if starthour < 24 and (not endhour or endhour < 24):
                 # verifying if endhour exists or calculate it
-                if not hour_only_end:
-                    endhour = str(hour + 1)
-                if "H" not in starthour.upper():
-                    starthour = starthour + "h"
-                self.answers["starthour"] = starthour
-                if "H" not in endhour.upper():
-                    endhour = endhour + "h"
-                self.answers["endhour"] = endhour
+                if not endhour:
+                    endhour = str(starthour + 1)
+                self.answers["starthour"] = starthour + "h"
+                self.answers["endhour"] = endhour + "h"
                 return True
             self.custom_response = (
                 "Veuillez saisir une heure valide comprise entre 0 et 24h"
