@@ -4,7 +4,7 @@ from datetime import datetime
 import discord
 from discord.ext import commands
 
-import database
+import database as db
 
 OWNER_ID = int(os.getenv("OWNER_ID"))
 
@@ -46,7 +46,7 @@ class Suggestion(commands.Cog):
     @commands.Cog.listener("on_raw_reaction_add")
     async def decisive_reaction(self, payload):
         """
-        Calling when the owner add a reaction
+        Called when the owner add a reaction
         """
         channel = self.bot.get_channel(payload.channel_id)
         if payload.user_id != OWNER_ID or "suggestion" not in channel.name:
@@ -54,11 +54,8 @@ class Suggestion(commands.Cog):
 
         message = await channel.fetch_message(payload.message_id)
         if str(payload.emoji) == "✅":
-            sql = (
-                f"""INSERT INTO suggestions (author, description) """
-                f"""VALUES ("{message.author.name}", "{message.content}")"""
-            )
-            database.execute(sql)
+            sql = "INSERT INTO suggestions (author, description) VALUES (%s, %s)"
+            db.execute(sql, (message.author.name, message.content))
 
         for reaction in message.reactions:
             if str(reaction.emoji) == "✅":

@@ -36,7 +36,7 @@ def execute(sql, data=None, dictionary=False, fetchone=False, fetchall=False):
                 cursor.execute(sql)
             cnx.commit()
         except mysql.connector.Error as error:
-            logging.error(f"SQL request {sql} has failed: {error}\n")
+            logging.error(f"SQL request {sql} failed: {error}\n")
 
         if fetchone:
             return cursor.fetchone()

@@ -46,6 +46,8 @@ class Commands(commands.Cog):
         )
         await ctx.send(embed=embed)
 
+    # TODO: add embed_send command
+
 
 def setup(bot):
     bot.add_cog(Commands(bot))
