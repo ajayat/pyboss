@@ -15,7 +15,7 @@ class _ModMember:
         self.member = member
         self.class_group = data["class_group"]
         self.top_role = discord.utils.get(member.guild.roles, name=data["top_role"])
-        self._sub_roles = set()
+        self.sub_roles = set()
         if sub_roles := data["sub_roles"]:
             self.sub_roles = set(sub_roles.split(", "))
 
@@ -80,8 +80,9 @@ class _ModMember:
         return self._sub_roles
 
     @sub_roles.setter
-    def sub_roles(self, *roles):
-        self._sub_roles.update(set(roles))
+    def sub_roles(self, roles):
+        """ Property to update a role when set """
+        self._sub_roles = set(roles)
         sub_roles = ", ".join(self._sub_roles)
         sql = "UPDATE members SET sub_roles=%s WHERE member_id=%s"
         db.execute(sql, (sub_roles, self.member.id))
