@@ -7,8 +7,8 @@ import re
 import discord
 from discord.ext import commands
 
-import database as db
-from models.modMember import get_mod_member
+from models.member import get_member_model
+from utils import database as db
 
 with open("static/json/channels_tables.json") as f:
     CHANNELS_TABLES = json.load(f)
@@ -211,19 +211,18 @@ class PlanningAndAgendaModel:
         Callback to check if the user write a correct matter and place in blacklist if not
         """
         content = msg.content.upper()
-        mod_member = get_mod_member(self.bot, msg.author)
-        end_date = mod_member.get_blacklist_date()
+        mod_member = get_member_model(self.bot, msg.author)
 
         with open("static/json/matters_wordlist.json", encoding="utf-8") as wordlist:
             matters_wordlist = json.load(wordlist)
         if matters_wordlist.get(content):
             self.answers["matter"] = matters_wordlist[content]
 
-        elif not end_date:
+        elif not mod_member.blacklist_date:
             mod_member.place_in_blacklist()
             self.answers["matter"] = content.title()
         else:
-            timedelta = end_date - datetime.datetime.now()
+            timedelta = mod_member.blacklist_date - datetime.datetime.now()
             hours, minutes = (
                 timedelta.total_seconds() // 3600,
                 (timedelta.total_seconds() % 3600) // 60,
@@ -240,9 +239,9 @@ class PlanningAndAgendaModel:
         """
         Check with a regex the data as user input, can accept several formats
         """
-        regex = re.match(r"^(\d{1,2})[-\s/:]*(\d{1,2})$", msg.content)
+        regex = re.match(r"^(?P<day>\d{1,2})[-\s/:]*(?P<month>\d{1,2})$", msg.content)
         if regex:
-            day, month = map(int, (regex.group(1), regex.group(2)))
+            day, month = map(int, regex.groups())
             try:
                 today = datetime.date.today()
                 year = today.year if today.month > month else today.year + 1
@@ -271,23 +270,19 @@ class PlanningAndAgendaModel:
     def _check_hours(self, msg):
         try:
             regex = re.match(
-                r"^(?P<start>\d{1,3})[hH]?[-àa; /:]*(?P<end>\d{1,2})?[hH]?$",
+                r"^(?P<start>[0-1]?[0-9]|2[0-4])[hH]?[-àa; /:]*(?P<end>[0-1]?[0-9]|2[0-4])?[hH]?$",
                 msg.content,
             )
-            starthour, endhour = map(int, (regex.group("start"), regex.group("end")))
-        except KeyError:
+            starthour, endhour = map(int, regex.groups())
+        except (KeyError, ValueError):
             self.custom_response = "Votre format de plage horaire est invalide."
         else:
-            if starthour < 24 and (not endhour or endhour < 24):
-                # verifying if endhour exists or calculate it
-                if not endhour:
-                    endhour = str(starthour + 1)
-                self.answers["starthour"] = starthour + "h"
-                self.answers["endhour"] = endhour + "h"
-                return True
-            self.custom_response = (
-                "Veuillez saisir une heure valide comprise entre 0 et 24h"
-            )
+            # verifying if endhour exists or calculate it
+            if not endhour:
+                endhour = str(starthour + 1)
+            self.answers["starthour"] = starthour + "h"
+            self.answers["endhour"] = endhour + "h"
+            return True
 
     @check_source
     def _check_description(self, msg):

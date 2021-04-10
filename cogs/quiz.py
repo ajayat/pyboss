@@ -9,8 +9,8 @@ import string
 import discord
 from discord.ext import commands
 
-import database
 from models.modMember import get_mod_member
+from utils import database
 
 
 def quiz_channel(ctx):

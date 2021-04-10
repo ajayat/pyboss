@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands, tasks
 from googleapiclient.discovery import build
 
-from models.modMember import get_mod_member
+from models.member import get_member_model
 
 
 class Commands(commands.Cog):
@@ -64,26 +64,29 @@ class Commands(commands.Cog):
         await ctx.send(" ".join(params))
         await ctx.message.delete()
 
-    @commands.command(aliases=["mi"])
+    @commands.command()
     @commands.guild_only()
-    async def member_info(self, ctx, mention=None):
+    async def profile(self, ctx, mention=None):
         """
         Consulter les infos d'un membre
         """
-        member = ctx.guild.get_member(int(mention[3:-1])) if mention else ctx.author
-        mod_member = get_mod_member(self.bot, member)
-        embed = discord.Embed(title="User profile", colour=0xFFA325)
-        embed.set_author(name=member.name)
-        embed.set_thumbnail(url=member.avatar_url)
-        embed.add_field(name="Name", value=member.mention, inline=True)
-        embed.add_field(name="Level", value=mod_member.level, inline=True)
-        embed.add_field(name="XP", value=mod_member.XP, inline=True)
-        embed.add_field(
-            name="Membre depuis...",
-            value=f"{mod_member.joined_at:%d/%m/%Y}",
-            inline=True,
-        )
-        await ctx.send(embed=embed)
+        id = mention.strip("<>!?@&") if mention else ctx.author.id
+        if not id.isdigit():
+            await ctx.send(f"{mention} est incorrect")
+
+        elif member := get_member_model(self.bot, int(id)):
+            embed = discord.Embed(title="Profil", colour=0xFFA325)
+            embed.set_author(name=member.name)
+            embed.set_thumbnail(url=member.avatar_url)
+            embed.add_field(name="Name", value=member.mention, inline=True)
+            embed.add_field(name="Level", value=member.level, inline=True)
+            embed.add_field(name="XP", value=member.XP, inline=True)
+            embed.add_field(
+                name="Membre depuis...",
+                value=f"{member.joined_at:%d/%m/%Y}",
+                inline=True,
+            )
+            await ctx.send(embed=embed)
 
     # TODO: add embed_send command
 
