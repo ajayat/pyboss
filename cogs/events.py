@@ -1,9 +1,8 @@
 import logging
 from datetime import datetime
-from itertools import cycle
 
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 
 import database as db
 from models.modMember import get_mod_member
@@ -14,29 +13,12 @@ class Events(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.status = cycle(
-            [
-                discord.Streaming(
-                    name="de l'algorithmique",
-                    url="http://www.france-ioi.org/algo/chapters.php",
-                ),
-                discord.Game(name=f"{bot.command_prefix}help"),
-            ]
-        )
-
-    @tasks.loop(seconds=5)
-    async def change_status(self):
-        """
-        Change status every 5 seconds
-        """
-        await self.bot.change_presence(activity=next(self.status))
 
     @commands.Cog.listener()
     async def on_ready(self):
         """
         When client is connected
         """
-        self.change_status.start()
         print(f"\n{' READY ':>^80}\n")
 
     @commands.Cog.listener()

@@ -1,5 +1,9 @@
+import os
+from itertools import cycle
+
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
+from googleapiclient.discovery import build
 
 from models.modMember import get_mod_member
 
@@ -7,6 +11,41 @@ from models.modMember import get_mod_member
 class Commands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.status = cycle((discord.Game(name=f"{bot.command_prefix}help"),))
+
+    @commands.command(aliases=["status"])
+    @commands.guild_only()
+    @commands.is_owner()
+    async def change_status(self, _, *params):
+        """
+        Change le status du bot par des vidéos correspondantes à la recherche
+        """
+
+        def youtube_search():
+            youtube = build(
+                "youtube", "v3", developerKey=os.getenv("API_DEVELOPER_KEY")
+            )
+            response = (
+                youtube.search()
+                .list(part="snippet", q=" ".join(params), type="video", maxResults=50)
+                .execute()
+            )
+
+            for video in response["items"]:
+                yield discord.Streaming(
+                    name=video["snippet"]["title"],
+                    url=f"https://www.youtube.com/watch?v={video['id']['videoId']}",
+                )
+
+        self.status = cycle(youtube_search())
+
+    @tasks.loop(seconds=10)
+    async def loop_status(self):
+        await self.bot.change_presence(activity=next(self.status))
+
+    @commands.Cog.listener("on_ready")
+    async def before_loop_status(self):
+        self.loop_status.start()
 
     @commands.command()
     @commands.guild_only()
