@@ -49,7 +49,7 @@ class Events(commands.Cog):
                 mod_member.top_role,
                 reason="The user was already register, re-attribute the main role",
             )
-            await mod_member.add_sub_roles()
+            await member.add_roles(mod_member.sub_roles)
         else:
             sql = f"INSERT INTO members (member_id, name) VALUES ({member.id}, '{member.name}')"
             db.execute(sql)
@@ -93,13 +93,24 @@ class Events(commands.Cog):
         """
         Check if a member has updated roles and modifies them in the database
         """
-        if before.roles != after.roles:
-            if mod_member := get_mod_member(self.bot, after):
-                mod_member.sub_roles = set(map(lambda r: r.name, after.roles))
-            else:
-                logging.error(
-                    f"The user {after.name} was not found in database PyBoss.members"
-                )
+        if before.roles == after.roles:
+            return
+
+        if mod_member := get_mod_member(self.bot, after):
+            mod_member.sub_roles.clear()
+            for role in map(lambda r: r.name, after.roles):
+                if role.startswith("Prof") or role.startswith("Élève"):
+                    mod_member.update_db(top_role=role)
+                elif role.startswith("Groupe"):
+                    mod_member.update_db(class_group=int(role[-1]))
+                elif role != "@everyone":
+                    mod_member.sub_roles.add(role)
+
+            mod_member.update_db(sub_roles=", ".join(mod_member.sub_roles))
+        else:
+            logging.error(
+                f"The user {after.name} was not found in database PyBoss.members"
+            )
 
 
 def setup(bot):

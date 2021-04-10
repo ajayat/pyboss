@@ -11,17 +11,17 @@ from models.modMember import get_mod_member
 
 
 class Roles(commands.Cog):
+    FIELDNAMES = {
+        "Prof": "DM_choice_categories",
+        "Élève G1": "DM_choice_roles_G1",
+        "Élève G2": "DM_choice_roles_G2",
+    }
+
     def __init__(self, bot):
         self.bot = bot
 
         with open("static/json/reacts_pairs.json", encoding="utf-8") as f:
             self.reacts_pairs = json.load(f)
-
-        self.fieldnames = {
-            "Prof": "DM_choice_categories",
-            "Élève G1": "DM_choice_roles_G1",
-            "Élève G2": "DM_choice_roles_G2",
-        }
 
     async def send_choice(self, ctx, name):
         """Generate a welcome message to choice roles to manage permissions"""
@@ -75,12 +75,10 @@ class Roles(commands.Cog):
                 f"The user {mod_member.name} was not registered in members table"
             )
         else:
-            fieldname = self.fieldnames.get(mod_member.top_role.name)
+            fieldname = self.FIELDNAMES.get(mod_member.top_role.name)
             message = await self.send_choice(mod_member, fieldname)
-            mod_member.dm_choice_msg_id = message.id
             # delete all sub roles if the user already choice in the past
-            sql = f"UPDATE members SET sub_roles='' WHERE member_id={mod_member.id}"
-            db.execute(sql)
+            mod_member.update_db(sub_roles="", choice_msg_id=message.id)
 
     @commands.Cog.listener("on_raw_reaction_add")
     @commands.Cog.listener("on_raw_reaction_remove")
@@ -98,7 +96,7 @@ class Roles(commands.Cog):
         else:
             return
 
-        fieldname = self.fieldnames.get(mod_member.top_role.name)
+        fieldname = self.FIELDNAMES.get(mod_member.top_role.name)
         try:
             emoji_value = self.reacts_pairs[fieldname][payload.emoji.name]
         except KeyError:
@@ -106,9 +104,9 @@ class Roles(commands.Cog):
             return
 
         if payload.event_type == "REACTION_ADD":
-            mod_member.sub_roles += {emoji_value}
+            mod_member.sub_roles.add(emoji_value)
         else:
-            mod_member.sub_roles -= {emoji_value}
+            mod_member.sub_roles.remove(emoji_value)
 
         if mod_member.validate_state == 0:
             await self.send_sub_roles_validate(mod_member)
@@ -124,7 +122,7 @@ class Roles(commands.Cog):
         message = await mod_member.send(embed=embed)
         await message.add_reaction("✅")
         await message.add_reaction("❌")
-        mod_member.validate_state = 1
+        mod_member.update_db(validate_state=1)
 
         def check(react, usr):
             if react.message.id == message.id and mod_member.id == usr.id:
@@ -136,10 +134,12 @@ class Roles(commands.Cog):
             )
         except asyncio.TimeoutError:
             await mod_member.send("Le délai de confirmaton a expiré")
-            mod_member.validate_state = 0
+            mod_member.update_db(validate_state=0)
         else:
             if str(reaction.emoji) == "✅":
-                await mod_member.add_sub_roles()
+                await mod_member.member.add_roles(
+                    mod_member.sub_roles, reason="The member has selected this matter"
+                )
                 embed = discord.Embed(
                     title=f"Vous êtes 'fin prêt, cher {mod_member.main_role}!",
                     colour=0xFF22FF,
@@ -147,9 +147,9 @@ class Roles(commands.Cog):
                     "présent accès aux salons!",
                 )
                 await mod_member.send(embed=embed)
-                mod_member.validate_state = 2
+                mod_member.update_db(validate_state=2)
             else:
-                mod_member.validate_state = 0
+                mod_member.update_db(validate_state=0)
                 await mod_member.send("Vos choix ont été déclinés.")
         finally:
             await message.delete()
