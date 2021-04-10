@@ -97,7 +97,7 @@ class _ModMember:
             f"UPDATE members SET choice_msg_id={id} "
             f"WHERE member_id={self.member.id}"
         )
-        self._dm_choice_msg_id = db.execute(sql, fetchone=True)
+        (self._dm_choice_msg_id,) = db.execute(sql, fetchone=True)
 
     @property
     def validate_state(self):

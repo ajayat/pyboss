@@ -31,10 +31,10 @@ async def update_message_ref(fieldname, message: discord.Message):
     """
     update id of agenda or planning message in messages_id.json file
     """
-    sql = f"SELECT message_id FROM specials WHERE name={fieldname}"
-    ex_message_id = db.execute(sql, fetchone=True)
-    sql = f"UPDATE specials SET message_id={message.id} WHERE name={fieldname}"
-    db.execute(sql)
+    sql = f"SELECT message_id FROM specials WHERE name='{fieldname}'"
+    (ex_message_id,) = db.execute(sql, fetchone=True)
+    sql = "UPDATE specials SET message_id=%s WHERE name=%s"
+    db.execute(sql, (message.id, fieldname))
     try:
         ex_message = await message.channel.fetch_message(ex_message_id)
     except (discord.NotFound, discord.HTTPException):

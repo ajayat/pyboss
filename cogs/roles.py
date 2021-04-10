@@ -13,7 +13,6 @@ from models.modMember import get_mod_member
 class Roles(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.is_bot = lambda id: id == bot.user.id
 
         with open("static/json/reacts_pairs.json", encoding="utf-8") as f:
             self.reacts_pairs = json.load(f)
@@ -23,8 +22,6 @@ class Roles(commands.Cog):
             "Élève G1": "DM_choice_roles_G1",
             "Élève G2": "DM_choice_roles_G2",
         }
-        sql = "SELECT message_id FROM specials WHERE name='guild_choice'"
-        self.choice_msg_id = db.execute(sql, fetchone=True)
 
     async def send_choice(self, ctx, name):
         """Generate a welcome message to choice roles to manage permissions"""
@@ -60,7 +57,9 @@ class Roles(commands.Cog):
     @commands.guild_only()
     async def reaction_guild_choice(self, payload):
         """ Called when a user add a reaction """
-        if self.choice_msg_id != payload.message_id or self.is_bot(payload.user_id):
+        sql = "SELECT message_id FROM specials WHERE name='guild_choice'"
+        (choice_msg_id,) = db.execute(sql, fetchone=True)
+        if choice_msg_id != payload.message_id or self.bot.user.id == payload.user_id:
             return  # exit if it's not for the guild_choice message
 
         mod_member = get_mod_member(self.bot, payload.member)

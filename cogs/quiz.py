@@ -2,6 +2,7 @@ import asyncio
 import itertools
 import json
 import logging
+import math
 import random
 import string
 
@@ -36,12 +37,14 @@ class Question:
         self.question_dict = question
         self.player_wins = []
         self.player_loses = []
+        self.message = None
 
     async def send_question(self, timeout=30.0):
         """
         send a question
         question is a dict selected from the database
         """
+
         embed = discord.Embed(
             title=self.question_dict["question"],
             colour=random.choice(self.COLOURS),
@@ -49,33 +52,40 @@ class Question:
         )
         embed.set_author(name=self.question_dict["theme"])
         embed.set_footer(text=f"Auteur: {self.question_dict['author']}")
-        self.question = await self.channel.send(embed=embed)
+        self.message = await self.channel.send(embed=embed)
 
         for p in self.question_dict["propositions"].split("\n"):
             if p:
                 with open("static/json/letters_emojis.json", encoding="utf-8") as f:
                     emoji = json.load(f)[p[0]]
-                await self.question.add_reaction(emoji)
+                await self.message.add_reaction(emoji)
+
+        await asyncio.sleep(timeout)
 
     async def send_rank(self):
         """
         check reactions, send a rank info and ajust XP of the members
         """
+
+        def win_score(n, coef, level):
+            return math.ceil(((200 + level) * math.sqrt(n)) / (math.sqrt(coef) * level))
+
+        def lose_score(level):
+            return math.ceil(20 * math.sqrt(level))
+
         description = "**Gagnants**: \n" if self.player_wins else ""
         nb_players = len(self.player_wins) + len(self.player_loses)
 
-        for id, coef in zip(self.player_wins, itertools.count(1)):
+        for id, i in zip(self.player_wins, itertools.count(1)):
             mod_member = get_mod_member(self.bot, id)
-            score = round(
-                (200 * nb_players ** (1 / 2)) / (coef ** (1 / 2) * mod_member.level)
-            )
-            description += f"{coef}. {mod_member.name}: +{score}XP \n"
+            score = win_score(nb_players, i, mod_member.level)
+            description += f"{i}. {mod_member.name}: +{score}XP \n"
             mod_member.XP += score
 
         description += "\n**Perdants**: \n" if self.player_loses else ""
         for id in self.player_loses:
             mod_member = get_mod_member(self.bot, id)
-            score = round(20 * (mod_member.level + nb_players) ** (1 / 2))
+            score = lose_score(nb_players)
             description += f":small_red_triangle_down: {mod_member.name}: -{score}XP \n"
             mod_member.XP -= score
 
@@ -99,16 +109,15 @@ class Quiz(commands.Cog):
         self.bot = bot
         self.party_active = False
         self.active_questions = []
+        self.scores = {}
 
     @commands.Cog.listener()
     @commands.guild_only()
-    async def on_message(self, message):
+    async def on_message(self, msg):
         """Obtain a few XP per message"""
-        if message.author.id != self.bot.user.id and not message.content.startswith(
-            "!"
-        ):
+        if msg.author.id != self.bot.user.id and not msg.content.startswith("!"):
             try:
-                mod_member = get_mod_member(self.bot, message.author.id)
+                mod_member = get_mod_member(self.bot, msg.author.id)
                 mod_member.XP += 25
             except AttributeError:
                 pass
@@ -123,9 +132,8 @@ class Quiz(commands.Cog):
         sql = "SELECT * FROM quiz ORDER BY RAND () LIMIT 1"
         question_dict = database.execute(sql, fetchone=True, dictionary=True)
         question = Question(self.bot, ctx.channel, question_dict)
-        await question.send_question(timeout=30.0)
         self.active_questions.append(question)
-        await asyncio.sleep(30.0)
+        await question.send_question(timeout=30.0)
         self.active_questions.remove(question)
         await question.send_rank()
 
@@ -135,19 +143,19 @@ class Quiz(commands.Cog):
         """
         remove ex reactions of the user in a quiz question
         """
+
+        def get_question_if_active(question):
+            for active_q in self.active_questions:
+                if question.id == active_q.message.id:
+                    return active_q
+
         msg = reaction.message
-
-        def is_active(question):
-            for q in self.active_questions:
-                if question.id == q.question.id:
-                    return q
-
-        question_class = is_active(msg)
+        question_class = get_question_if_active(msg)
         if player == self.bot.user or not question_class or reaction.count <= 1:
             return
 
         for react in msg.reactions:
-            async for user in reaction.users():
+            async for user in react.users():
                 if user == player and react is not reaction:
                     await react.remove(user)
 
@@ -229,10 +237,10 @@ class Quiz(commands.Cog):
         """
         await ctx.message.delete()
 
-        async def send_question(question, timeout=60.0):
-            msg = await ctx.send(question)
+        async def send_question(q, timeout=60.0):
+            msg = await ctx.send(q)
             msg_response = await self.bot.wait_for(
-                "message", check=lambda msg: msg.author == ctx.author, timeout=timeout
+                "message", check=lambda m: m.author == ctx.author, timeout=timeout
             )
             content = msg_response.content
             await msg.delete()
