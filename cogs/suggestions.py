@@ -12,6 +12,7 @@ OWNER_ID = int(os.getenv("OWNER_ID"))
 def suggestion_channel(ctx):
     if not isinstance(ctx.channel, discord.DMChannel):
         return "suggestion" in ctx.channel.name
+    return False
 
 
 class Suggestion(commands.Cog):
@@ -26,7 +27,7 @@ class Suggestion(commands.Cog):
         send the rules for suggestion channel
         """
         await ctx.message.delete()
-        with open("static/txt/suggestions_rules.txt", encoding="utf-8") as f:
+        with open("static/text/suggestions_rules.md", encoding="utf-8") as f:
             content = f.read()
         embed = discord.Embed(
             title="Fonctionnement des suggestions", description=content, colour=0xFF66FF

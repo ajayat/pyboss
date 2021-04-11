@@ -16,6 +16,7 @@ from utils import database as db
 def quiz_channel(ctx):
     if not isinstance(ctx, discord.DMChannel):
         return "quiz" in ctx.channel.name or "test" in ctx.channel.name
+    return False
 
 
 class Question:
@@ -35,8 +36,8 @@ class Question:
         self.bot = bot
         self.channel = channel
         self.question_dict = question
-        self.player_wins = []
-        self.player_loses = []
+        self.player_wins = set()
+        self.player_loses = set()
         self.message = None
 
     async def send_question(self, timeout=30.0):
@@ -145,39 +146,34 @@ class Quiz(commands.Cog):
         """
 
         def get_question_if_active(question):
-            for active_q in self.active_questions:
-                if question.id == active_q.message.id:
-                    return active_q
+            for q in self.active_questions:
+                if question.id == q.message.id:
+                    return q
+            return None
 
         msg = reaction.message
         question_class = get_question_if_active(msg)
         if player == self.bot.user or not question_class or reaction.count <= 1:
             return
 
-        for react in msg.reactions:
-            async for user in react.users():
-                if user == player and react is not reaction:
-                    await react.remove(user)
-
         with open("static/json/letters_emojis.json", encoding="utf-8") as f:
             correct_reaction = json.load(f)[question_class.question_dict["response"]]
 
-        for reaction in msg.reactions:
-            async for user in reaction.users():
-                if user.id != self.bot.user.id:
+        for react in msg.reactions:
+            async for user in react.users():
+                if user == player and react is reaction:
                     wins, loses = (
                         question_class.player_wins,
                         question_class.player_loses,
                     )
-
-                    if user.id in wins:
-                        wins.remove(user.id)
-                    if user.id in loses:
+                    if str(react.emoji) == correct_reaction:
+                        wins.add(user.id)
                         loses.remove(user.id)
-                    if str(reaction.emoji) == correct_reaction:
-                        wins.append(user.id)
                     else:
-                        loses.append(user.id)
+                        loses.add(user.id)
+                        wins.remove(user.id)
+                elif user.id != self.bot.user.id:
+                    await react.remove(user)
 
     @commands.command(name="quiz")
     @commands.guild_only()

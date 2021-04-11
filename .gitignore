@@ -1,6 +1,5 @@
 .vs/
 .vscode/
-.vs/
 .idea/
 venv/
 env/
@@ -9,6 +8,5 @@ __pycache__/
 *.out
 *.log
 *.env
-*.pre-commit-config.yaml
 *.sql
 *.flake8

@@ -26,7 +26,7 @@ class Roles(commands.Cog):
     async def send_choice(self, ctx, name):
         """Generate a welcome message to choice roles to manage permissions"""
 
-        with open(f"static/txt/{name}.txt", encoding="utf-8") as content:
+        with open(f"static/text/{name}.md", encoding="utf-8") as content:
             embed = discord.Embed(
                 title="Bienvenue!", colour=0xFF22FF, description=content.read()
             )
@@ -47,10 +47,7 @@ class Roles(commands.Cog):
         """ Generate a welcome message to choice roles to manage permissions """
         await ctx.message.delete()
         message = await self.send_choice(ctx, "guild_choice")
-        sql = (
-            f"UPDATE specials SET choice_msg_id={message.id}"
-            f"WHERE name='guild_choice'"
-        )
+        sql = f"UPDATE specials SET message_id={message.id} WHERE name='guild_choice'"
         db.execute(sql)
 
     @commands.Cog.listener("on_raw_reaction_add")
@@ -125,10 +122,11 @@ class Roles(commands.Cog):
 
         def check(react, usr):
             if react.message.id == message.id and mod_member.id == usr.id:
-                return str(react.emoji) == "✅" or str(react.emoji) == "❌"
+                return str(react.emoji) in ("✅", "❌")
+            return False
 
         try:
-            reaction, user = await self.bot.wait_for(
+            reaction, _ = await self.bot.wait_for(
                 "reaction_add", timeout=60.0, check=check
             )
         except asyncio.TimeoutError:

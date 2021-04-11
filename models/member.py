@@ -59,8 +59,7 @@ class _MemberModel:
 
     @XP.setter
     def XP(self, value):
-        if value < 0:
-            value = 0
+        value = max(value, 0)
         self._update_db(XP=value)
         level = int(value ** (1 / 2) / 50) + 1
         if self._level != level:
@@ -99,3 +98,4 @@ def get_member_model(bot, member: Union[int, discord.Member, discord.User]):
     mod_member = db.execute(sql, dictionary=True, fetchone=True)
     if mod_member:
         return _MemberModel(member, **mod_member)
+    return None

@@ -40,5 +40,6 @@ def execute(sql, data=None, dictionary=False, fetchone=False, fetchall=False):
 
         if fetchone:
             return cursor.fetchone()
-        elif fetchall:
+        if fetchall:
             return cursor.fetchall()
+        return None

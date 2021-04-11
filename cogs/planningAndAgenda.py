@@ -18,6 +18,7 @@ def check_source(func):
     def evaluate(self, msg):
         if msg.channel == self.channel and msg.author.id == self.author.id:
             return func(self, msg)
+        return None
 
     return evaluate
 
@@ -25,6 +26,7 @@ def check_source(func):
 def authorized_channels(ctx):
     if not isinstance(ctx, discord.DMChannel):
         return str(ctx.channel.id) in PlanningAndAgendaModel.CHANNELS_TABLES
+    return False
 
 
 async def update_message_ref(fieldname, message: discord.Message):
@@ -203,12 +205,11 @@ class PlanningAndAgendaModel:
 
         await update_message_ref(f"{self.table}_{self.table_class}", new_msg)
 
-    # ------------------------------ CHECKS -----------------------------
-
     @check_source
     def _check_matter(self, msg):
         """
-        Callback to check if the user write a correct matter and place in blacklist if not
+        Callback to check if the user write a correct matter
+        and place in blacklist if not.
         """
         content = msg.content.upper()
         mod_member = get_member_model(self.bot, msg.author)
@@ -240,31 +241,32 @@ class PlanningAndAgendaModel:
         Check with a regex the data as user input, can accept several formats
         """
         regex = re.match(r"^(?P<day>\d{1,2})[-\s/:]*(?P<month>\d{1,2})$", msg.content)
-        if regex:
-            day, month = map(int, regex.groups())
-            try:
-                today = datetime.date.today()
-                year = today.year if today.month > month else today.year + 1
-                date_user = datetime.date(year=year, month=month, day=day)
-            except ValueError:
-                self.custom_response = "Vous avez mis des valeurs invalides"
-                return
-
-            if date_user.weekday() < 5:
-                if date_user >= datetime.date.today():
-                    self.answers["date"] = str(date_user)
-                    return True
-                else:
-                    self.custom_response = (
-                        f"Vous ne pouvez pas ajouter ou supprimer des cours car "
-                        f"{day}/{month} est antérieur à la date d'aujourd'hui"
-                    )
-            else:
-                self.custom_response = "On ne travaille pas le week end! \
-                                        Votre jour doit faire parti de la semaine."
-        else:
+        if not regex:
             self.custom_response = "Votre format de date est invalide."
             logging.info(f"The user {msg.author.name} hasn't wrote correctly the date")
+            return False
+
+        day, month = map(int, regex.groups())
+        try:
+            today = datetime.date.today()
+            year = today.year if today.month > month else today.year + 1
+            date_user = datetime.date(year=year, month=month, day=day)
+        except ValueError:
+            self.custom_response = "Vous avez mis des valeurs invalides"
+            return False
+
+        if date_user.weekday() < 5:
+            if date_user >= datetime.date.today():
+                self.answers["date"] = str(date_user)
+                return True
+            self.custom_response = (
+                f"Vous ne pouvez pas ajouter ou supprimer des cours car "
+                f"{day}/{month} est antérieur à la date d'aujourd'hui"
+            )
+            return False
+        self.custom_response = "On ne travaille pas le week end! \
+                                Votre jour doit faire parti de la semaine."
+        return False
 
     @check_source
     def _check_hours(self, msg):
@@ -308,11 +310,11 @@ class PlanningAndAgenda(commands.Cog):
         """
         await ctx.message.delete()
         if "agenda" in ctx.channel.name:
-            with open("static/txt/agenda_rules.txt", encoding="utf-8") as agenda:
+            with open("static/text/agenda_rules.md", encoding="utf-8") as agenda:
                 content = agenda.read()
                 title = "Fonctionnement de l'agenda"
         else:
-            with open("static/txt/planning_rules.txt", encoding="utf-8") as planning:
+            with open("static/text/planning_rules.md", encoding="utf-8") as planning:
                 content = planning.read()
                 title = "Fonctionnement du planning"
 
