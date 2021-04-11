@@ -31,15 +31,17 @@ class Music(commands.Cog):
         """
         voice_client = ctx.guild.voice_client
         query = " ".join(params)
-        v_infos = next(youtube_search(query, n=1))
+        try:
+            v_infos = next(youtube_search(query, n=1))
+        except StopIteration:
+            await ctx.send("Aucune musique n'a été trouvée.")
+            return
 
         if voice_client and voice_client.channel:
             # if client is already connected
             video = Video(**v_infos)
             self.musics[ctx.guild].append(video)
-            await ctx.message.channel.send(
-                f"Musique ajoutée à la file d'attente: **{video.name}**"
-            )
+            await ctx.send(f"Musique ajoutée à la file d'attente: **{video.name}**")
         elif ctx.author.voice:
             voice_channel = ctx.author.voice.channel
             video = Video(**v_infos)
@@ -47,11 +49,9 @@ class Music(commands.Cog):
             voice_client = await voice_channel.connect()
             self.play_song(voice_client, self.musics[ctx.guild], video)
 
-            await ctx.message.channel.send(
-                f"Musique en cours: **{video.name}** \n{video.url}"
-            )
+            await ctx.send(f"Musique en cours: **{video.name}** \n{video.url}")
         else:
-            await ctx.message.channel.send("Vous n'êtes pas connecté à un salon vocal")
+            await ctx.send("Vous n'êtes pas connecté à un salon vocal")
 
     def play_song(self, voice_client, queue, song):
         """
