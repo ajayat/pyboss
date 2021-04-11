@@ -4,7 +4,7 @@ from datetime import datetime
 import discord
 from discord.ext import commands
 
-import database as db
+from utils import database as db
 
 OWNER_ID = int(os.getenv("OWNER_ID"))
 

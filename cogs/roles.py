@@ -6,8 +6,8 @@ from datetime import datetime
 import discord
 from discord.ext import commands
 
-import database as db
-from models.modMember import get_mod_member
+from models.member import get_member_model
+from utils import database as db
 
 
 class Roles(commands.Cog):
@@ -62,30 +62,28 @@ class Roles(commands.Cog):
         if choice_msg_id != payload.message_id or self.bot.user.id == payload.user_id:
             return  # exit if it's not for the guild_choice message
 
-        mod_member = get_mod_member(self.bot, payload.member)
+        member = get_member_model(self.bot, payload.member)
         try:
             role_name = self.reacts_pairs["guild_choice"][payload.emoji.name]
-            await mod_member.update_top_role(role_name)
+            await member.remove_roles(member.top_role)
+            await member.add_roles(member.get_role_by_name(role_name))
         except KeyError:
-            await mod_member.dm_channel.send(
-                f"{mod_member.mention} Cette réaction est invalide"
+            await member.dm_channel.send(
+                f"{member.mention} Cette réaction est invalide"
             )
         except AttributeError:
-            logging.error(
-                f"The user {mod_member.name} was not registered in members table"
-            )
+            logging.error(f"The user {member.name} was not registered in members table")
         else:
-            fieldname = self.FIELDNAMES.get(mod_member.top_role.name)
-            message = await self.send_choice(mod_member, fieldname)
-            # delete all sub roles if the user already choice in the past
-            mod_member.update_db(sub_roles="", choice_msg_id=message.id)
+            fieldname = self.FIELDNAMES.get(member.top_role.name)
+            message = await self.send_choice(member, fieldname)
+            member.update_db(choice_msg_id=message.id)
 
     @commands.Cog.listener("on_raw_reaction_add")
     @commands.Cog.listener("on_raw_reaction_remove")
     @commands.dm_only()
     async def reaction_sub_role_add(self, payload):
         """ React when a member choice his roles  in DM channel """
-        mod_member = get_mod_member(self.bot, payload.user_id)
+        mod_member = get_member_model(self.bot, payload.user_id)
 
         if mod_member and payload.message_id == mod_member.dm_choice_msg_id:
             if mod_member.validate_state == 2:
@@ -103,10 +101,11 @@ class Roles(commands.Cog):
             await mod_member.send("Cette réaction est invalide")
             return
 
+        role = mod_member.get_role_by_name(emoji_value)
         if payload.event_type == "REACTION_ADD":
-            mod_member.sub_roles.add(emoji_value)
+            mod_member.sub_roles.add(role)
         else:
-            mod_member.sub_roles.remove(emoji_value)
+            mod_member.sub_roles.remove(role)
 
         if mod_member.validate_state == 0:
             await self.send_sub_roles_validate(mod_member)
@@ -137,7 +136,7 @@ class Roles(commands.Cog):
             mod_member.update_db(validate_state=0)
         else:
             if str(reaction.emoji) == "✅":
-                await mod_member.member.add_roles(
+                await mod_member.add_roles(
                     mod_member.sub_roles, reason="The member has selected this matter"
                 )
                 embed = discord.Embed(

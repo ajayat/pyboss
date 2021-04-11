@@ -9,8 +9,8 @@ import string
 import discord
 from discord.ext import commands
 
-import database
-from models.modMember import get_mod_member
+from models.member import get_member_model
+from utils import database as db
 
 
 def quiz_channel(ctx):
@@ -77,14 +77,14 @@ class Question:
         nb_players = len(self.player_wins) + len(self.player_loses)
 
         for id, i in zip(self.player_wins, itertools.count(1)):
-            mod_member = get_mod_member(self.bot, id)
+            mod_member = get_member_model(self.bot, id)
             score = win_score(nb_players, i, mod_member.level)
             description += f"{i}. {mod_member.name}: +{score}XP \n"
             mod_member.XP += score
 
         description += "\n**Perdants**: \n" if self.player_loses else ""
         for id in self.player_loses:
-            mod_member = get_mod_member(self.bot, id)
+            mod_member = get_member_model(self.bot, id)
             score = lose_score(nb_players)
             description += f":small_red_triangle_down: {mod_member.name}: -{score}XP \n"
             mod_member.XP -= score
@@ -117,7 +117,7 @@ class Quiz(commands.Cog):
         """Obtain a few XP per message"""
         if msg.author.id != self.bot.user.id and not msg.content.startswith("!"):
             try:
-                mod_member = get_mod_member(self.bot, msg.author.id)
+                mod_member = get_member_model(self.bot, msg.author.id)
                 mod_member.XP += 25
             except AttributeError:
                 pass
@@ -130,7 +130,7 @@ class Quiz(commands.Cog):
         Générer une question de quiz aléatoire
         """
         sql = "SELECT * FROM quiz ORDER BY RAND () LIMIT 1"
-        question_dict = database.execute(sql, fetchone=True, dictionary=True)
+        question_dict = db.execute(sql, fetchone=True, dictionary=True)
         question = Question(self.bot, ctx.channel, question_dict)
         self.active_questions.append(question)
         await question.send_question(timeout=30.0)
@@ -190,7 +190,7 @@ class Quiz(commands.Cog):
             return
         self.party_active, self.scores = True, {}
         sql = f"SELECT * FROM quiz ORDER BY RAND() LIMIT {nb_questions}"
-        questions_dict = database.execute(sql, fetchall=True, dictionary=True)
+        questions_dict = db.execute(sql, fetchall=True, dictionary=True)
 
         for question_dict in questions_dict:
             question = Question(self.bot, ctx.channel, question_dict)
@@ -201,7 +201,7 @@ class Quiz(commands.Cog):
             wins, _ = await question.send_rank()
 
             for id in wins:
-                mod_member = get_mod_member(self.bot, id)
+                mod_member = get_member_model(self.bot, id)
                 self.scores[mod_member.name] = self.scores.get(mod_member.name, 0) + 1
             await asyncio.sleep(30.0)
 
@@ -279,11 +279,9 @@ class Quiz(commands.Cog):
                 "INSERT INTO quiz (author, theme, question, propositions, response) "
                 "VALUES (%s, %s, %s, %s, %s)"
             )
-            database.execute(
-                sql, (ctx.author.name, theme, question, propositions, response)
-            )
+            db.execute(sql, (ctx.author.name, theme, question, propositions, response))
 
-            mod_member = get_mod_member(self.bot, ctx.author)
+            mod_member = get_member_model(self.bot, ctx.author)
             mod_member.XP += 500
             embed = discord.Embed(
                 title="Merci!",

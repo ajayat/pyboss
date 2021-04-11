@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
-from database import test_connection
+from utils.database import test_connection
 
 load_dotenv()
 test_connection()

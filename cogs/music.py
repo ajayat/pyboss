@@ -4,15 +4,17 @@ import discord
 import youtube_dl
 from discord.ext import commands
 
+from utils.music import youtube_search
+
 ytdl = youtube_dl.YoutubeDL()
 
 
 class Video:
-    def __init__(self, link):
-
-        video = ytdl.extract_info(link, download=False)
+    def __init__(self, name, url):
+        video = ytdl.extract_info(url, download=False)
         video_format = video["formats"][0]
-        self.url = video["webpage_url"]
+        self.url = url
+        self.name = name
         self.stream_url = video_format["url"]
 
 
@@ -21,22 +23,35 @@ class Music(commands.Cog):
         self.bot = bot
         self.musics = {}
 
-    @commands.command(name="play")
-    async def play(self, ctx, url):
+    @commands.command(name="play", aliases=["p"])
+    @commands.guild_only()
+    async def play(self, ctx, *params):
         """
-        Joue une musique (lien requis)
+        Joue la musique correspondante à la recherche
         """
         voice_client = ctx.guild.voice_client
+        query = " ".join(params)
+        v_infos = next(youtube_search(query, n=1))
 
         if voice_client and voice_client.channel:
-            video = Video(url)
+            # if client is already connected
+            video = Video(**v_infos)
             self.musics[ctx.guild].append(video)
-        else:
+            await ctx.message.channel.send(
+                f"Musique ajoutée à la file d'attente: **{video.name}**"
+            )
+        elif ctx.author.voice:
             voice_channel = ctx.author.voice.channel
-            video = Video(url)
+            video = Video(**v_infos)
             self.musics[ctx.guild] = []
             voice_client = await voice_channel.connect()
             self.play_song(voice_client, self.musics[ctx.guild], video)
+
+            await ctx.message.channel.send(
+                f"Musique en cours: **{video.name}** \n{video.url}"
+            )
+        else:
+            await ctx.message.channel.send("Vous n'êtes pas connecté à un salon vocal")
 
     def play_song(self, voice_client, queue, song):
         """
@@ -49,16 +64,22 @@ class Music(commands.Cog):
             )
         )
 
-        def next(_):
+        def next_song(_):
             if len(queue) > 0:
                 new_song = queue.pop(0)
                 self.play_song(voice_client, queue, new_song)
             else:
-                asyncio.run_coroutine_threadsafe(voice_client.disconnect, self.bot.loop)
+                try:
+                    asyncio.run_coroutine_threadsafe(
+                        voice_client.disconnect, self.bot.loop
+                    )
+                except TypeError:  # TODO: fix that
+                    pass
 
-        voice_client.play(source, after=next)
+        voice_client.play(source, after=next_song)
 
     @commands.command()
+    @commands.guild_only()
     async def skip(self, ctx):
         """
         Passer à la musique suivante, si disponible
@@ -69,27 +90,25 @@ class Music(commands.Cog):
         except TypeError:
             pass
         else:
-            embed = discord.Embed(
-                title="",
-                description=f"Morceau en cours: {self.musics[ctx.guild][0].url}",
-                colour=0x54FA48,
-            )
-            embed.set_author(name=ctx.author.name)
-            await ctx.send(embed=embed)
+            video = self.musics[ctx.guild][0]
+            await ctx.send(f"Morceau en cours: **{video.name}** \n{video.url}")
 
     @commands.command()
+    @commands.guild_only()
     async def pause(self, ctx):
         voice_client = ctx.guild.voice_client
         if not voice_client.is_paused():
             voice_client.pause()
 
     @commands.command()
+    @commands.guild_only()
     async def resume(self, ctx):
         voice_client = ctx.guild.voice_client
         if voice_client.is_paused():
             voice_client.resume()
 
-    @commands.command()
+    @commands.command(aliases=["quit"])
+    @commands.guild_only()
     async def leave(self, ctx):
         """
         Arrêter la musique et la queue
