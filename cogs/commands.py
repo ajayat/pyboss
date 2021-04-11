@@ -1,11 +1,10 @@
-import os
 from itertools import cycle
 
 import discord
 from discord.ext import commands, tasks
-from googleapiclient.discovery import build
 
 from models.member import get_member_model
+from utils.music import youtube_search
 
 
 class Commands(commands.Cog):
@@ -20,26 +19,14 @@ class Commands(commands.Cog):
         """
         Change le status du bot par des vidéos correspondantes à la recherche
         """
+        query = " ".join(params)
+        videos = []
+        for video in youtube_search(query, n=50):
+            videos.append(discord.Streaming(**video))
 
-        def youtube_search():
-            youtube = build(
-                "youtube", "v3", developerKey=os.getenv("API_DEVELOPER_KEY")
-            )
-            response = (
-                youtube.search()
-                .list(part="snippet", q=" ".join(params), type="video", maxResults=50)
-                .execute()
-            )
+        self.status = cycle(videos)
 
-            for video in response["items"]:
-                yield discord.Streaming(
-                    name=video["snippet"]["title"],
-                    url=f"https://www.youtube.com/watch?v={video['id']['videoId']}",
-                )
-
-        self.status = cycle(youtube_search())
-
-    @tasks.loop(seconds=10)
+    @tasks.loop(seconds=30)
     async def loop_status(self):
         await self.bot.change_presence(activity=next(self.status))
 
@@ -89,6 +76,7 @@ class Commands(commands.Cog):
             await ctx.send(embed=embed)
 
     # TODO: add embed_send command
+    # TODO: add LaTeX like Texit bot
 
 
 def setup(bot):

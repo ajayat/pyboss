@@ -98,4 +98,4 @@ def get_member_model(bot, member: Union[int, discord.Member, discord.User]):
     sql = f"SELECT * FROM members WHERE member_id={member.id}"
     mod_member = db.execute(sql, dictionary=True, fetchone=True)
     if mod_member:
-        return _MemberModel(member, guild, **mod_member)
+        return _MemberModel(member, **mod_member)
