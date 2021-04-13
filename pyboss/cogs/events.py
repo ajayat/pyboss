@@ -4,8 +4,8 @@ from datetime import datetime
 import discord
 from discord.ext import commands
 
-from models.member import get_member_model
-from utils import database as db
+from ..controllers.member import MemberController
+from ..utils import database as db
 
 
 class Events(commands.Cog):
@@ -26,7 +26,7 @@ class Events(commands.Cog):
         """
         When a member join a guild, insert it in database or restore all its data
         """
-        if mod_member := get_member_model(self.bot, member):
+        if mod_member := MemberController(member):
             await member.add_roles(
                 mod_member.sub_roles | {mod_member.top_role},  # union
                 reason="The user was already register, re-attribute the main role",
@@ -34,7 +34,7 @@ class Events(commands.Cog):
         else:
             sql = "INSERT INTO members (member_id, name) VALUES (%s, %s)"
             db.execute(sql, (member.id, member.name))
-            mod_member = get_member_model(self.bot, member)
+            mod_member = MemberController(member)
             default_role = mod_member.get_role_by_name("Non Vérifié")
             await member.add_roles(default_role, reason="User was not verified")
 
@@ -79,7 +79,7 @@ class Events(commands.Cog):
         if before.roles == after.roles:
             return
 
-        if mod_member := get_member_model(self.bot, after):
+        if mod_member := MemberController(after):
             mod_member.sub_roles.clear()
             for role in after.roles:
                 if role.name in ("Prof", "Non Vérifié", "Élève G1", "Élève G2"):

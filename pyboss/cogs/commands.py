@@ -3,8 +3,9 @@ from itertools import cycle
 import discord
 from discord.ext import commands, tasks
 
-from models.member import get_member_model
-from utils.music import youtube_search
+from ..controllers.guild import GuildController
+from ..utils.checkers import is_guild_owner
+from ..utils.music import youtube_search
 
 
 class Commands(commands.Cog):
@@ -14,7 +15,7 @@ class Commands(commands.Cog):
 
     @commands.command(aliases=["status"])
     @commands.guild_only()
-    @commands.is_owner()
+    @is_guild_owner()
     async def change_status(self, _, *params):
         """
         Change le status du bot par des vidéos correspondantes à la recherche
@@ -61,7 +62,7 @@ class Commands(commands.Cog):
         if not id.isdigit():
             await ctx.send(f"{mention} est incorrect")
 
-        elif member := get_member_model(self.bot, int(id)):
+        elif member := GuildController(ctx.guild).get_member(int(id)):
             embed = discord.Embed(title="Profil", colour=0xFFA325)
             embed.set_author(name=member.name)
             embed.set_thumbnail(url=member.avatar_url)
@@ -75,8 +76,7 @@ class Commands(commands.Cog):
             )
             await ctx.send(embed=embed)
 
-    # TODO: add embed_send command
-    # TODO: add LaTeX like Texit bot
+    # TODO: add embed_send command and LaTeX command like Texit bot
 
 
 def setup(bot):

@@ -16,14 +16,13 @@ _CONFIG = {
 
 
 def test_connection():
-
-    with mysql.connector.connect(**_CONFIG):
-        try:
-            logging.info(f"Succesfully connected to database {_CONFIG['database']}")
-            return True
-        except mysql.connector.Error:
-            logging.warning("Invalid password, connection denied")
-    return False
+    try:
+        mysql.connector.connect(**_CONFIG)
+        logging.info(f"Succesfully connected to database {_CONFIG['database']}")
+    except mysql.connector.Error as error:
+        logging.error(f"Invalid password, connection denied \n{error}")
+        return False
+    return True
 
 
 def execute(sql, data=None, dictionary=False, fetchone=False, fetchall=False):
@@ -42,4 +41,4 @@ def execute(sql, data=None, dictionary=False, fetchone=False, fetchall=False):
             return cursor.fetchone()
         if fetchall:
             return cursor.fetchall()
-        return None
+    return None

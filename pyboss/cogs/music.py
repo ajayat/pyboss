@@ -4,12 +4,16 @@ import discord
 import youtube_dl
 from discord.ext import commands
 
-from utils.music import youtube_search
+from ..utils.music import youtube_search
 
 ytdl = youtube_dl.YoutubeDL()
 
 
 class Video:
+    """
+    Represents a video with stream url and name extracted by youtube_dl
+    """
+
     def __init__(self, name, url):
         video = ytdl.extract_info(url, download=False)
         video_format = video["formats"][0]
@@ -19,6 +23,10 @@ class Video:
 
 
 class Music(commands.Cog):
+    """
+    Offers an interface with typicals commands to play music in voice channel
+    """
+
     def __init__(self, bot):
         self.bot = bot
         self.musics = {}
@@ -55,12 +63,12 @@ class Music(commands.Cog):
 
     def play_song(self, voice_client, queue, song):
         """
-        couroutine to play a song
+        Couroutine to play a song
         """
         source = discord.PCMVolumeTransformer(
             discord.FFmpegPCMAudio(
                 song.stream_url,
-                before_options="-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
+                before_options="-reconnect 1 -reconnect_streamed 1",
             )
         )
 
@@ -73,7 +81,7 @@ class Music(commands.Cog):
                     asyncio.run_coroutine_threadsafe(
                         voice_client.disconnect, self.bot.loop
                     )
-                except TypeError:  # TODO: fix that
+                except TypeError:
                     pass
 
         voice_client.play(source, after=next_song)

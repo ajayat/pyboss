@@ -9,8 +9,9 @@ import string
 import discord
 from discord.ext import commands
 
-from models.member import get_member_model
-from utils import database as db
+from ..controllers.guild import GuildController
+from ..controllers.member import MemberController
+from ..utils import database as db
 
 
 def quiz_channel(ctx):
@@ -20,8 +21,13 @@ def quiz_channel(ctx):
 
 
 class Question:
+    """
+    Represents a single question with attributes like related message
+    and the winners or losers
+    """
 
     COLOURS = [0xFFFF00, 0x0000FF, 0xFF0000, 0xFF75FF, 0x00FF00, 0x757575, 0x75FF75]
+
     TIMEOUT_MESSAGES = [
         "Le temps est écoulé!",
         "ding ding it's finish",
@@ -35,6 +41,7 @@ class Question:
     def __init__(self, bot, channel: discord.TextChannel, question: dict):
         self.bot = bot
         self.channel = channel
+        self.guild = GuildController(channel.guild)
         self.question_dict = question
         self.player_wins = set()
         self.player_loses = set()
@@ -42,10 +49,9 @@ class Question:
 
     async def send_question(self, timeout=30.0):
         """
-        send a question
+        Send a question
         question is a dict selected from the database
         """
-
         embed = discord.Embed(
             title=self.question_dict["question"],
             colour=random.choice(self.COLOURS),
@@ -57,7 +63,7 @@ class Question:
 
         for p in self.question_dict["propositions"].split("\n"):
             if p:
-                with open("static/json/letters_emojis.json", encoding="utf-8") as f:
+                with open("../static/json/letters_emojis.json", encoding="utf-8") as f:
                     emoji = json.load(f)[p[0]]
                 await self.message.add_reaction(emoji)
 
@@ -65,7 +71,7 @@ class Question:
 
     async def send_rank(self):
         """
-        check reactions, send a rank info and ajust XP of the members
+        Check reactions, send a rank info and ajust XP of the members
         """
 
         def win_score(n, coef, level):
@@ -78,14 +84,14 @@ class Question:
         nb_players = len(self.player_wins) + len(self.player_loses)
 
         for id, i in zip(self.player_wins, itertools.count(1)):
-            mod_member = get_member_model(self.bot, id)
+            mod_member = self.guild.get_member(id)
             score = win_score(nb_players, i, mod_member.level)
             description += f"{i}. {mod_member.name}: +{score}XP \n"
             mod_member.XP += score
 
         description += "\n**Perdants**: \n" if self.player_loses else ""
         for id in self.player_loses:
-            mod_member = get_member_model(self.bot, id)
+            mod_member = self.guild.get_member(id)
             score = lose_score(nb_players)
             description += f":small_red_triangle_down: {mod_member.name}: -{score}XP \n"
             mod_member.XP -= score
@@ -118,7 +124,7 @@ class Quiz(commands.Cog):
         """Obtain a few XP per message"""
         if msg.author.id != self.bot.user.id and not msg.content.startswith("!"):
             try:
-                mod_member = get_member_model(self.bot, msg.author.id)
+                mod_member = MemberController(msg.author)
                 mod_member.XP += 25
             except AttributeError:
                 pass
@@ -142,7 +148,7 @@ class Quiz(commands.Cog):
     @commands.guild_only()
     async def _reaction_on_question(self, reaction, player):
         """
-        remove ex reactions of the user in a quiz question
+        Remove ex reactions of the user in a quiz question
         """
 
         def get_question_if_active(question):
@@ -156,7 +162,7 @@ class Quiz(commands.Cog):
         if player == self.bot.user or not question_class or reaction.count <= 1:
             return
 
-        with open("static/json/letters_emojis.json", encoding="utf-8") as f:
+        with open("../static/json/letters_emojis.json", encoding="utf-8") as f:
             correct_reaction = json.load(f)[question_class.question_dict["response"]]
 
         for react in msg.reactions:
@@ -197,7 +203,7 @@ class Quiz(commands.Cog):
             wins, _ = await question.send_rank()
 
             for id in wins:
-                mod_member = get_member_model(self.bot, id)
+                mod_member = GuildController(ctx.guild).get_member(id)
                 self.scores[mod_member.name] = self.scores.get(mod_member.name, 0) + 1
             await asyncio.sleep(30.0)
 
@@ -277,7 +283,7 @@ class Quiz(commands.Cog):
             )
             db.execute(sql, (ctx.author.name, theme, question, propositions, response))
 
-            mod_member = get_member_model(self.bot, ctx.author)
+            mod_member = MemberController(ctx.author)
             mod_member.XP += 500
             embed = discord.Embed(
                 title="Merci!",

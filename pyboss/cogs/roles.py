@@ -4,13 +4,17 @@ import logging
 from datetime import datetime
 
 import discord
+from controllers.guild import GuildController
 from discord.ext import commands
-
-from models.member import get_member_model
 from utils import database as db
 
 
 class Roles(commands.Cog):
+    """
+    Offers an interface to manage roles and send messages
+    to choice his roles inside the guild
+    """
+
     FIELDNAMES = {
         "Prof": "DM_choice_categories",
         "Élève G1": "DM_choice_roles_G1",
@@ -20,13 +24,14 @@ class Roles(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        with open("static/json/reacts_pairs.json", encoding="utf-8") as f:
+        with open("../static/json/reacts_pairs.json", encoding="utf-8") as f:
             self.reacts_pairs = json.load(f)
 
     async def send_choice(self, ctx, name):
-        """Generate a welcome message to choice roles to manage permissions"""
-
-        with open(f"static/text/{name}.md", encoding="utf-8") as content:
+        """
+        Generate a welcome message to choice roles to manage permissions
+        """
+        with open(f"../static/text/{name}.md", encoding="utf-8") as content:
             embed = discord.Embed(
                 title="Bienvenue!", colour=0xFF22FF, description=content.read()
             )
@@ -44,7 +49,9 @@ class Roles(commands.Cog):
     @commands.command(name="guild_choice", hidden=True)
     @commands.is_owner()
     async def send_guild_choice(self, ctx):
-        """ Generate a welcome message to choice roles to manage permissions """
+        """
+        Generate a welcome message to choice a role in order to manage permissions
+        """
         await ctx.message.delete()
         message = await self.send_choice(ctx, "guild_choice")
         sql = f"UPDATE specials SET message_id={message.id} WHERE name='guild_choice'"
@@ -53,13 +60,16 @@ class Roles(commands.Cog):
     @commands.Cog.listener("on_raw_reaction_add")
     @commands.guild_only()
     async def reaction_guild_choice(self, payload):
-        """ Called when a user add a reaction """
+        """
+        Update top role or send a DM message to the user to choice his sub roles
+        """
         sql = "SELECT message_id FROM specials WHERE name='guild_choice'"
         (choice_msg_id,) = db.execute(sql, fetchone=True)
         if choice_msg_id != payload.message_id or self.bot.user.id == payload.user_id:
             return  # exit if it's not for the guild_choice message
 
-        member = get_member_model(self.bot, payload.member)
+        guild = GuildController(payload.guild)
+        member = guild.get_member(payload.member)
         try:
             role_name = self.reacts_pairs["guild_choice"][payload.emoji.name]
             await member.remove_roles(member.top_role)
@@ -73,19 +83,23 @@ class Roles(commands.Cog):
         else:
             fieldname = self.FIELDNAMES.get(member.top_role.name)
             message = await self.send_choice(member, fieldname)
-            member.update_db(choice_msg_id=message.id)
+            member.choice_msg_id = message.id
 
     @commands.Cog.listener("on_raw_reaction_add")
     @commands.Cog.listener("on_raw_reaction_remove")
     @commands.dm_only()
     async def reaction_sub_role_add(self, payload):
-        """ React when a member choice his roles  in DM channel """
-        mod_member = get_member_model(self.bot, payload.user_id)
+        """
+        React when a member choice his roles  in DM channel
+        """
+        guild = GuildController(payload.guild)
+        mod_member = guild.get_member(payload.user_id)
 
         if mod_member and payload.message_id == mod_member.dm_choice_msg_id:
             if mod_member.validate_state == 2:
                 await mod_member.send(
-                    "Vous ne pouvez plus redéfinir vos choix, veuillez contacter un modérateur."
+                    "Vous ne pouvez plus redéfinir vos choix, "
+                    "veuillez contacter un modérateur."
                 )
                 return
         else:
@@ -108,7 +122,9 @@ class Roles(commands.Cog):
             await self.send_sub_roles_validate(mod_member)
 
     async def send_sub_roles_validate(self, mod_member):
-        """ Update sub roles list in json file """
+        """
+        Update sub roles list in json file
+        """
         embed = discord.Embed(
             title="Confirmation",
             colour=0xFF22FF,

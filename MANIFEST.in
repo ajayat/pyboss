@@ -1,0 +1,16 @@
+# include license files
+include LICENSE
+
+# include docker files for dev
+include Dockerfile
+include docker-compose.yml
+
+# include static files
+recursive-include pyboss/**/static *
+
+# include tests
+graft tests
+
+# exclude files containing byte-code and compiled libs
+global-exclude *.py[cod]
+

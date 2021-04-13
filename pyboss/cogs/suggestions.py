@@ -4,7 +4,7 @@ from datetime import datetime
 import discord
 from discord.ext import commands
 
-from utils import database as db
+from ..utils import database as db
 
 OWNER_ID = int(os.getenv("OWNER_ID"))
 
@@ -16,6 +16,10 @@ def suggestion_channel(ctx):
 
 
 class Suggestion(commands.Cog):
+    """
+    Offers commands to allow members to propose suggestions and interact with them
+    """
+
     def __init__(self, bot):
         self.bot = bot
 
@@ -24,10 +28,10 @@ class Suggestion(commands.Cog):
     @commands.check(suggestion_channel)
     async def send_suggestions_rules(self, ctx):
         """
-        send the rules for suggestion channel
+        Send the rules for suggestion channel
         """
         await ctx.message.delete()
-        with open("static/text/suggestions_rules.md", encoding="utf-8") as f:
+        with open("../static/text/suggestions_rules.md", encoding="utf-8") as f:
             content = f.read()
         embed = discord.Embed(
             title="Fonctionnement des suggestions", description=content, colour=0xFF66FF
@@ -47,7 +51,7 @@ class Suggestion(commands.Cog):
     @commands.Cog.listener("on_raw_reaction_add")
     async def decisive_reaction(self, payload):
         """
-        Called when the owner add a reaction
+        Send result to all users when the owner add a reaction
         """
         channel = self.bot.get_channel(payload.channel_id)
         if payload.user_id != OWNER_ID or "suggestion" not in channel.name:
@@ -72,35 +76,37 @@ class Suggestion(commands.Cog):
         """
         Send a message to a member who has voted to inform of the state of the reaction
         """
-        if user.id != self.bot.user.id and decisive_emoji in ("✅", "❌"):
-            citation = "\n> ".join(suggestion.content.split("\n"))
+        if user.id == self.bot.user.id or decisive_emoji not in ("✅", "❌"):
+            return
+        citation = "\n> ".join(suggestion.content.split("\n"))
 
-            if decisive_emoji == "✅":
-                embed = discord.Embed(
-                    colour=0xFF22BB,
-                    title="Suggestion acceptée!",
-                    description=f"**Félicitations!** La suggestion de **{suggestion.author.name}** "
-                    f"pour laquelle vous avez voté a été acceptée:\n\n > {citation} \n\n"
-                    "__Note__: \
-                    Il faut parfois attendre plusieurs jours avant qu'elle soit effective",
-                )
-            else:
-                embed = discord.Embed(
-                    colour=0xFF22BB,
-                    title="Suggestion refusée!",
-                    description=f"**Mauvaise nouvelle...** "
-                    f"la suggestion de **{suggestion.author.name}** pour laquelle vous avez voté "
-                    f"a été malheureusement refusée:\n\n {citation} \n",
-                )
-
-            embed.set_thumbnail(
-                url="https://kognos.pro/wp-content/uploads/2019/08/icon-2382008_960_720.png"
+        if decisive_emoji == "✅":
+            embed = discord.Embed(
+                colour=0xFF22BB,
+                title="Suggestion acceptée!",
+                description=(
+                    f"**Félicitations!** "
+                    f"La suggestion de **{suggestion.author.name}** pour laquelle "
+                    f"vous avez voté a été acceptée:\n> {citation} \n\n"
+                    "__Note__: \n Il faut parfois attendre plusieurs jours "
+                    "avant qu'elle soit effective",
+                ),
             )
-            embed.set_footer(
-                text=f"{self.bot.user.name} | This message was sent automatically"
+        else:
+            embed = discord.Embed(
+                colour=0xFF22BB,
+                title="Suggestion refusée!",
+                description=(
+                    f"**Mauvaise nouvelle...** "
+                    f"la suggestion de **{suggestion.author.name}** pour laquelle "
+                    f"vous avez voté a été malheureusement refusée:\n> {citation}\n\n"
+                ),
             )
-
-            await user.send(embed=embed)
+        embed.set_thumbnail(url="static/img/alert.png")
+        embed.set_footer(
+            text=f"{self.bot.user.name} | This message was sent automatically"
+        )
+        await user.send(embed=embed)
 
 
 def setup(bot):
