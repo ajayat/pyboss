@@ -3,7 +3,7 @@ import os
 from googleapiclient.discovery import build
 
 
-def youtube_search(query: str, n=1) -> dict:
+def search(query: str, n=1) -> dict:
     """
     Search video on youtube matching the query
     """

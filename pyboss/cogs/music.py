@@ -4,7 +4,7 @@ import discord
 import youtube_dl
 from discord.ext import commands
 
-from ..utils.music import youtube_search
+from .utils import youtube
 
 ytdl = youtube_dl.YoutubeDL()
 
@@ -40,7 +40,7 @@ class Music(commands.Cog):
         voice_client = ctx.guild.voice_client
         query = " ".join(params)
         try:
-            v_infos = next(youtube_search(query, n=1))
+            v_infos = next(youtube.search(query, n=1))
         except StopIteration:
             await ctx.send("Aucune musique n'a été trouvée.")
             return

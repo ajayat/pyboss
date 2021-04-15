@@ -44,17 +44,24 @@ repos:
       - id: autopep8
         name: 'Python PEP Rules (autopep8)'
         args:
-        - --in-place
-        - --aggressive
-        - --aggressive
-        - --experimental
-        - --list-fixes
+            - --in-place
+            - --aggressive
+            - --aggressive
+            - --experimental
+            - --list-fixes
 
 -   repo: https://github.com/pre-commit/mirrors-isort
     rev: v5.8.0
     hooks:
     -   id: isort
         name: Python Import Hierarchy
+        args:
+            - --profile=black
+            - --multi_line_output=3
+            - --include_trailing_comma=True
+            - --force_grid_wrap=0
+            - --use_parentheses=True
+            - --line_length=89
 
 -   repo: https://github.com/asottile/pyupgrade
     rev: v2.12.0

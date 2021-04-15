@@ -4,9 +4,10 @@ import logging
 from datetime import datetime
 
 import discord
-from controllers.guild import GuildController
 from discord.ext import commands
-from utils import database as db
+
+from pyboss.controllers.guild import GuildController
+from pyboss.utils import database as db
 
 
 class Roles(commands.Cog):
@@ -24,14 +25,14 @@ class Roles(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        with open("../static/json/reacts_pairs.json", encoding="utf-8") as f:
+        with open("pyboss/static/json/reacts_pairs.json", encoding="utf-8") as f:
             self.reacts_pairs = json.load(f)
 
     async def send_choice(self, ctx, name):
         """
         Generate a welcome message to choice roles to manage permissions
         """
-        with open(f"../static/text/{name}.md", encoding="utf-8") as content:
+        with open(f"pyboss/static/text/{name}.md", encoding="utf-8") as content:
             embed = discord.Embed(
                 title="Bienvenue!", colour=0xFF22FF, description=content.read()
             )

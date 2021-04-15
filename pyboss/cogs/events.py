@@ -4,8 +4,8 @@ from datetime import datetime
 import discord
 from discord.ext import commands
 
-from ..controllers.member import MemberController
-from ..utils import database as db
+from pyboss.controllers.member import MemberController
+from pyboss.utils import database as db
 
 
 class Events(commands.Cog):

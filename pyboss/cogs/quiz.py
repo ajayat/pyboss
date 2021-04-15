@@ -1,6 +1,5 @@
 import asyncio
 import itertools
-import json
 import logging
 import math
 import random
@@ -8,10 +7,11 @@ import string
 
 import discord
 from discord.ext import commands
+from emoji import emojize
 
-from ..controllers.guild import GuildController
-from ..controllers.member import MemberController
-from ..utils import database as db
+from pyboss.controllers.guild import GuildController
+from pyboss.controllers.member import MemberController
+from pyboss.utils import database as db
 
 
 def quiz_channel(ctx):
@@ -42,29 +42,33 @@ class Question:
         self.bot = bot
         self.channel = channel
         self.guild = GuildController(channel.guild)
-        self.question_dict = question
+        self.question = question
         self.player_wins = set()
         self.player_loses = set()
         self.message = None
 
     async def send_question(self, timeout=30.0):
         """
-        Send a question
-        question is a dict selected from the database
+        Send a question in Quiz channel
+
+        Question is a dict fetched from the quiz table that's contains field:
+        author - them - name - question - propositions - response
         """
         embed = discord.Embed(
-            title=self.question_dict["question"],
+            title=self.question["question"],
             colour=random.choice(self.COLOURS),
-            description=self.question_dict["propositions"],
+            description=self.question["propositions"],
         )
-        embed.set_author(name=self.question_dict["theme"])
-        embed.set_footer(text=f"Auteur: {self.question_dict['author']}")
+        embed.set_author(name=self.question["theme"])
+        embed.set_footer(text=f"Auteur: {self.question['author']}")
         self.message = await self.channel.send(embed=embed)
 
-        for p in self.question_dict["propositions"].split("\n"):
-            if p:
-                with open("../static/json/letters_emojis.json", encoding="utf-8") as f:
-                    emoji = json.load(f)[p[0]]
+        for line in self.question["propositions"].split("\n"):
+            # line is of the form "A) This is a proposition"
+            if line:
+                # Get emoji from it name that's depends on the first letter
+                char = line[0].lower()
+                emoji = emojize(f":regional_indicator:{char}", use_aliases=True)
                 await self.message.add_reaction(emoji)
 
         await asyncio.sleep(timeout)
@@ -162,8 +166,8 @@ class Quiz(commands.Cog):
         if player == self.bot.user or not question_class or reaction.count <= 1:
             return
 
-        with open("../static/json/letters_emojis.json", encoding="utf-8") as f:
-            correct_reaction = json.load(f)[question_class.question_dict["response"]]
+        char = question_class.question_dict["response"].lower()
+        correct_reaction = emojize(f"regional_indicator_{char}", use_aliases=True)
 
         for react in msg.reactions:
             async for user in react.users():
@@ -172,7 +176,7 @@ class Quiz(commands.Cog):
                         question_class.player_wins,
                         question_class.player_loses,
                     )
-                    if str(react.emoji) == correct_reaction:
+                    if react.emoji == correct_reaction:
                         wins.add(user.id)
                         loses.remove(user.id)
                     else:

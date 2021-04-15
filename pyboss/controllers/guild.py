@@ -1,7 +1,9 @@
 from functools import cache
+from typing import Union
 
 import discord
-from controllers.member import MemberController
+
+from .member import MemberController
 
 
 class GuildController:
@@ -13,14 +15,14 @@ class GuildController:
         return getattr(self.guild, name)
 
     @cache
-    def get_member_by_name(self, member: str) -> MemberController | None:
+    def get_member_by_name(self, member: str) -> Union[MemberController, None]:
         try:
             return discord.utils.get(self.members, name=member)
         except AttributeError:
             return None
 
     @cache
-    def get_member_by_id(self, member: int) -> MemberController | None:
+    def get_member_by_id(self, member: int) -> Union[MemberController, None]:
         try:
             return discord.utils.get(self.members, id=member)
         except AttributeError:

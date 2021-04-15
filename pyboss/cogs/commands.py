@@ -3,9 +3,10 @@ from itertools import cycle
 import discord
 from discord.ext import commands, tasks
 
-from ..controllers.guild import GuildController
-from ..utils.checkers import is_guild_owner
-from ..utils.music import youtube_search
+from pyboss.controllers.guild import GuildController
+
+from .utils import youtube
+from .utils.checkers import is_guild_owner
 
 
 class Commands(commands.Cog):
@@ -22,7 +23,7 @@ class Commands(commands.Cog):
         """
         query = " ".join(params)
         videos = []
-        for video in youtube_search(query, n=50):
+        for video in youtube.search(query, n=50):
             videos.append(discord.Streaming(**video))
 
         self.status = cycle(videos)

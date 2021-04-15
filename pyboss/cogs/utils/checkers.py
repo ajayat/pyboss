@@ -3,7 +3,7 @@ import json
 import discord
 from discord.ext import commands
 
-with open("./static/json/channels_tables.json") as f:
+with open("pyboss/static/json/channels_tables.json") as f:
     CHANNELS_TABLES = json.load(f)
 
 

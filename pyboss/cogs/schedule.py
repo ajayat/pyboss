@@ -5,24 +5,16 @@ import json
 import discord
 from discord.ext import commands
 
-from ..utils import database as db
-from ..utils.checkers import is_guild_owner, is_schedule_channel
-from ..utils.schedule import check_date, check_description, check_hours, check_matter
+from pyboss.utils import database as db
 
-MONTHS = [
-    "janvier",
-    "février",
-    "mars",
-    "avril",
-    "mai",
-    "juin",
-    "juillet",
-    "août",
-    "septembre",
-    "octobre",
-    "novembre",
-    "décembre",
-]
+from .utils.checkers import is_guild_owner, is_schedule_channel
+from .utils.schedule import check_date, check_description, check_hours, check_matter
+
+# fmt: off
+MONTHS = (
+    "janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août",
+    "septembre", "octobre", "novembre", "décembre"
+)  # fmt: on
 DAYS = ("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi")
 
 
@@ -42,11 +34,8 @@ async def update_message_ref(fieldname, message: discord.Message):
 
 
 class Schedule:
-    """
-    Model
-    """
 
-    with open("./static/json/channels_tables.json") as f:
+    with open("pyboss/static/json/channels_tables.json") as f:
         CHANNELS_TABLES = json.load(f)
 
     def __init__(self, ctx):

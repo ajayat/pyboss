@@ -8,7 +8,7 @@ from typing import Iterable
 import discord
 from cached_property import cached_property
 
-from ..utils import database as db
+from pyboss.utils import database as db
 
 
 class MemberController:

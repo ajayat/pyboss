@@ -1,15 +1,7 @@
 version: '3.9'
 
 services:
-  bot:
-    build: .
-    container_name: PyBoss_bot
-    command: python -m pyboss
-    depends_on:
-      - db
-    volumes:
-    - .:/PyBoss
-  db:
+  mysql:
     image: mysql
     container_name: MySQL
     environment:
@@ -18,4 +10,16 @@ services:
       MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
+  bot:
+    container_name: PyBoss_bot
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./logs:/PyBoss/logs
+      - .:/PyBoss
+    env_file:
+      - .env
+    depends_on:
+      - mysql

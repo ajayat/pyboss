@@ -1,12 +1,9 @@
-import os
 from datetime import datetime
 
 import discord
 from discord.ext import commands
 
-from ..utils import database as db
-
-OWNER_ID = int(os.getenv("OWNER_ID"))
+from pyboss.utils import database as db
 
 
 def suggestion_channel(ctx):
@@ -49,12 +46,16 @@ class Suggestion(commands.Cog):
             await message.add_reaction("❌")
 
     @commands.Cog.listener("on_raw_reaction_add")
+    @commands.guild_only()
     async def decisive_reaction(self, payload):
         """
         Send result to all users when the owner add a reaction
         """
         channel = self.bot.get_channel(payload.channel_id)
-        if payload.user_id != OWNER_ID or "suggestion" not in channel.name:
+        if (
+            payload.user_id != channel.guild.owner_id
+            or "suggestion" not in channel.name
+        ):
             return
 
         message = await channel.fetch_message(payload.message_id)

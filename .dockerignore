@@ -1,6 +1,9 @@
-venv
-build
-dist
-.idea
-.vscode
-*.egg-info
+# IDE config folder
+.vscode/
+.idea/
+
+# Environments
+.env/
+.venv/
+
+.gitignore

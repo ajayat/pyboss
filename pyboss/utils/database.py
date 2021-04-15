@@ -2,9 +2,8 @@ import logging
 import os
 
 import mysql.connector
-from dotenv import load_dotenv
 
-load_dotenv()
+logger = logging.getLogger(__name__)
 
 _CONFIG = {
     "host": os.getenv("DB_HOST"),
@@ -18,9 +17,9 @@ _CONFIG = {
 def test_connection():
     try:
         mysql.connector.connect(**_CONFIG)
-        logging.info(f"Succesfully connected to database {_CONFIG['database']}")
+        logger.info(f"Succesfully connected to database {_CONFIG['database']}")
     except mysql.connector.Error as error:
-        logging.error(f"Invalid password, connection denied \n{error}")
+        logger.error(f"Invalid password, connection denied \n{error}")
         return False
     return True
 
@@ -35,7 +34,7 @@ def execute(sql, data=None, dictionary=False, fetchone=False, fetchall=False):
                 cursor.execute(sql)
             cnx.commit()
         except mysql.connector.Error as error:
-            logging.error(f"SQL request {sql} failed: {error}\n")
+            logger.error(f"SQL request {sql} failed: {error}\n")
 
         if fetchone:
             return cursor.fetchone()
