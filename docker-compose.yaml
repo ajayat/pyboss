@@ -21,5 +21,7 @@ services:
       - .:/PyBoss
     env_file:
       - .env
+    environment:
+      ENVIRONMENT = production
     depends_on:
       - mysql

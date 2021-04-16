@@ -6,8 +6,8 @@ from datetime import datetime
 import discord
 from discord.ext import commands
 
-from pyboss.controllers.guild import GuildController
-from pyboss.utils import database as db
+from bot.controllers.guild import GuildController
+from bot.utils import database as db
 
 
 class Roles(commands.Cog):
@@ -25,14 +25,14 @@ class Roles(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        with open("pyboss/static/json/reacts_pairs.json", encoding="utf-8") as f:
+        with open("bot/static/json/reacts_pairs.json", encoding="utf-8") as f:
             self.reacts_pairs = json.load(f)
 
     async def send_choice(self, ctx, name):
         """
         Generate a welcome message to choice roles to manage permissions
         """
-        with open(f"pyboss/static/text/{name}.md", encoding="utf-8") as content:
+        with open(f"bot/static/text/{name}.md", encoding="utf-8") as content:
             embed = discord.Embed(
                 title="Bienvenue!", colour=0xFF22FF, description=content.read()
             )

@@ -55,13 +55,6 @@ repos:
     hooks:
     -   id: isort
         name: Python Import Hierarchy
-        args:
-            - --profile=black
-            - --multi_line_output=3
-            - --include_trailing_comma=True
-            - --force_grid_wrap=0
-            - --use_parentheses=True
-            - --line_length=89
 
 -   repo: https://github.com/asottile/pyupgrade
     rev: v2.12.0

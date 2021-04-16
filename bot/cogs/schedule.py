@@ -5,7 +5,8 @@ import json
 import discord
 from discord.ext import commands
 
-from pyboss.utils import database as db
+from bot import STATIC_DIR
+from bot.utils import database as db
 
 from .utils.checkers import is_guild_owner, is_schedule_channel
 from .utils.schedule import check_date, check_description, check_hours, check_matter
@@ -35,7 +36,7 @@ async def update_message_ref(fieldname, message: discord.Message):
 
 class Schedule:
 
-    with open("pyboss/static/json/channels_tables.json") as f:
+    with open(STATIC_DIR / "json/channels_tables.json") as f:
         CHANNELS_TABLES = json.load(f)
 
     def __init__(self, ctx):
@@ -168,7 +169,7 @@ class Schedule:
 
         title = "Cours à venir:" if self.table == "planning" else "Devoirs à faire:"
         embed = discord.Embed(color=0x22CCFF, title=title, description=message)
-        embed.set_thumbnail(url="static/img/book.jpg")
+        embed.set_thumbnail(url=STATIC_DIR / "img/book.jpg")
         new_msg = await self.channel.send(embed=embed)
 
         await update_message_ref(f"{self.table}_{self.table_class}", new_msg)
@@ -191,11 +192,11 @@ class PlanningAndAgenda(commands.Cog):
         """
         await ctx.message.delete()
         if "agenda" in ctx.channel.name:
-            with open("../static/text/agenda_rules.md", encoding="utf-8") as agenda:
+            with open(STATIC_DIR / "text/agenda_rules.md", encoding="utf-8") as agenda:
                 content = agenda.read()
                 title = "Fonctionnement de l'agenda"
         else:
-            with open("../static/text/planning_rules.md", encoding="utf-8") as planning:
+            with open(STATIC_DIR / "text/planning_rules.md", encoding="utf-8") as planning:
                 content = planning.read()
                 title = "Fonctionnement du planning"
 

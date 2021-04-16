@@ -3,7 +3,9 @@ import json
 import discord
 from discord.ext import commands
 
-with open("pyboss/static/json/channels_tables.json") as f:
+from bot import STATIC_DIR
+
+with open(STATIC_DIR / "json/channels_tables.json") as f:
     CHANNELS_TABLES = json.load(f)
 
 
