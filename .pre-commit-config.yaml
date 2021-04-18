@@ -61,3 +61,5 @@ repos:
     hooks:
     -   id: pyupgrade
         name: Python Upgradable Code
+        args:
+            - --keep-runtime-typing  # Prevents Union[str, int] -> str | int

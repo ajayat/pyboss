@@ -22,7 +22,7 @@ version = 1
     level = "DEBUG"
     filename = "bot/logs/bot.log"
     maxBytes = 50_000  # 50KB
-    backupCount = 2
+    backupCount = 4
 
 [loggers]
     [loggers.root]  # The default logger used for production

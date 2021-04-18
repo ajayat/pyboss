@@ -1,43 +1,73 @@
 import logging
 import os
+from operator import attrgetter
 
-import mysql.connector
+import sqlalchemy
+import sqlalchemy.exc
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
-_CONFIG = {
-    "host": os.getenv("DB_HOST"),
-    "user": os.getenv("DB_USER"),
-    "passwd": os.getenv("DB_PASSWORD"),
-    "database": os.getenv("DB_NAME"),
-    "port": os.getenv("DB_PORT"),
-}
+if __database_url := os.getenv("DATABASE_URL"):
+    # Raise ImportError is driver is not installed,
+    # other errors are due to an incorrect url syntax
+    engine = sqlalchemy.create_engine(__database_url)
+else:
+    # At this point, not url was specified for a remote database, let's create one
+    logger.warning(
+        "You have not specified an DATABASE_URL environment variable, "
+        "a local SQLLite database will be created. "
+        "Please, restart the script if this is not the desired behavior "
+    )
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
 
 
 def test_connection():
+    """
+    Tests if the connection to the database.
+    """
     try:
-        mysql.connector.connect(**_CONFIG)
-        logger.info(f"Succesfully connected to database {_CONFIG['database']}")
-    except mysql.connector.Error as error:
-        logger.error(f"Invalid password, connection denied \n{error}")
-        return False
+        engine.connect()  # test connection
+    except (
+        sqlalchemy.exc.ProgrammingError,
+        sqlalchemy.exc.InterfaceError,
+        sqlalchemy.exc.TimeoutError,
+    ) as err:
+        logger.fatal(f"Can't connect to the database with this URL: {__database_url}")
+        raise err
+    else:
+        *_, database_name = __database_url.rpartition("/")
+        logger.info(
+            f"A connection to the database {database_name} "
+            f"was successful established"
+        )
     return True
 
 
-def execute(sql, data=None, dictionary=False, fetchone=False, fetchall=False):
-    with mysql.connector.connect(**_CONFIG) as cnx:
-        cursor = cnx.cursor(dictionary=dictionary, buffered=True)
+def execute(stmt):
+    """
+    Creates a Session to execute the given statement.
+    """
+    with Session(engine) as session:
         try:
-            if data:  # parametrized query
-                cursor.execute(sql, data)
-            else:
-                cursor.execute(sql)
-            cnx.commit()
-        except mysql.connector.Error as error:
-            logger.error(f"SQL request {sql} failed: {error}\n")
-
-        if fetchone:
-            return cursor.fetchone()
-        if fetchall:
-            return cursor.fetchall()
+            result = session.execute(stmt)
+        except sqlalchemy.exc.DBAPIError as err:
+            # https://docs.sqlalchemy.org/en/13/core/exceptions.html
+            logger.error(
+                f"The following statement execution has failed: {err.statement}"
+                f"\n {err.statement}"
+                f"Full error stack: {err}"
+            )
+        else:
+            return result
     return None
+
+
+def array_to_string(arr, attr=None) -> str:
+    """
+    Joins values to store the data in MySQL column.
+    """
+    if attr:
+        # https://docs.python.org/3/library/operator.html#operator.attrgetter
+        arr = map(attrgetter(attr), arr)
+    return ", ".join(arr)

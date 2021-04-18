@@ -144,7 +144,7 @@ class Schedule:
             f"SELECT * FROM {self.table} "
             f"WHERE class='{self.table_class}' AND date>=NOW() ORDER BY date"
         )
-        result = db.execute(sql, dictionary=True, fetchall=True)
+        result = db.execute(sql, fetchall=True)
 
         next_date, message = None, ""
         for row in result:

@@ -1,12 +1,15 @@
 # include license files
 include LICENSE
 
+# include config files
+bot-config.toml
+
 # include docker files for dev
 include Dockerfile
-include docker-compose.yml
+include docker-compose.yaml
 
 # include static files
-recursive-include pyboss/**/static *
+recursive-include bot/**/static *
 
 # include tests
 graft tests

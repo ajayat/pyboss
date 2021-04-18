@@ -15,7 +15,7 @@ BOT_CONFIG = toml.load("bot-config.toml")
 _log_config = toml.load("bot/logging-config.toml")  # Loads logging config
 
 if os.getenv("ENVIRONMENT") == "development":
-    # All logged are herited from the root logger
+    # All logger are herited from the root logger
     _log_config["root"] = _log_config["loggers"]["development"]
 
 os.makedirs("bot/logs", exist_ok=True)  # Does anything if it already exists
