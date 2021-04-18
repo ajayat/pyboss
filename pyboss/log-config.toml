@@ -20,7 +20,7 @@ version = 1
     class = "logging.handlers.RotatingFileHandler"
     formatter = "verbose"
     level = "DEBUG"
-    filename = "bot/logs/bot.log"
+    filename = "./logs/bot.log"
     maxBytes = 50_000  # 50KB
     backupCount = 4
 

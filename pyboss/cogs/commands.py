@@ -3,7 +3,7 @@ from itertools import cycle
 import discord
 from discord.ext import commands, tasks
 
-from bot.controllers.guild import GuildController
+from pyboss.controllers.guild import GuildController
 
 from .utils import youtube
 from .utils.checkers import is_guild_owner

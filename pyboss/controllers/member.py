@@ -9,8 +9,8 @@ import discord
 from cached_property import cached_property
 from sqlalchemy import select, update
 
-from bot.models import Member
-from bot.utils import database
+from pyboss.models import Member
+from pyboss.utils import database
 
 
 class MemberController:

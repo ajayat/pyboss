@@ -21,12 +21,20 @@ Install `pipenv` dependencies:
 ```sh
 python3.9 -m pip install pipenv
 ```
-Run the script `bot/__main__.py` or `python3.9 -m bot`
+Run the script `bot/__main__.py` or `python3.9 -m pyboss`
 
 - ### Using Docker
 ```sh
 docker-compose up --build
 ```
+
+- ### Using Setup
+PyBoss can be used as a module:
+```sh
+python3.9 -m pip install .
+```
+You can start the bot by importing the main function:
+
 
 [Issues]: https://deepsource.io/gh/Adridri24/PyBoss.svg/?label=active+issues&show_trend=true
 [Badge-Issues]: https://deepsource.io/gh/Adridri24/PyBoss/?ref=repository-badge

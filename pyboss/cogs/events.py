@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 from utils import database as db
 
-from bot.controllers.member import MemberController
+from pyboss.controllers.member import MemberController
 
 
 class Events(commands.Cog):

@@ -26,4 +26,4 @@ COPY . .
 
 # Run the bot
 ENTRYPOINT ["python"]
-CMD ["-m", "bot"]
+CMD ["-m", "pyboss"]

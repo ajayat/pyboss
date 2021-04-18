@@ -5,8 +5,8 @@ import json
 import discord
 from discord.ext import commands
 
-from bot import STATIC_DIR
-from bot.utils import database as db
+from pyboss import STATIC_DIR
+from pyboss.utils import database as db
 
 from .utils.checkers import is_guild_owner, is_schedule_channel
 from .utils.schedule import check_date, check_description, check_hours, check_matter

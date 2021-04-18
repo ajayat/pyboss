@@ -9,9 +9,9 @@ import discord
 from discord.ext import commands
 from emoji import emojize
 
-from bot.controllers.guild import GuildController
-from bot.controllers.member import MemberController
-from bot.utils import database as db
+from pyboss.controllers.guild import GuildController
+from pyboss.controllers.member import MemberController
+from pyboss.utils import database as db
 
 
 def quiz_channel(ctx):

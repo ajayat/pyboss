@@ -2,7 +2,7 @@ from importlib import import_module
 from pkgutil import walk_packages
 from typing import Any, Iterator, NoReturn
 
-from bot import cogs
+from pyboss import cogs
 
 
 def find_available_cogs() -> Iterator[Any]:
@@ -22,6 +22,3 @@ def find_available_cogs() -> Iterator[Any]:
         # Checks if it have a setup function (a callable)
         if callable(getattr(imported, "setup", None)):
             yield imported
-
-
-COGS = frozenset(find_available_cogs())

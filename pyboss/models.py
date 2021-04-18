@@ -56,7 +56,7 @@ class Message(Base):
     __tablename__ = "messages"
 
     id: int = Column(BigInteger, primary_key=True, autoincrement=True)
-    author_id: int = Column(BigInteger, foreign_key=Member.id)
+    author_id: int = Column(BigInteger)  # foreign_key=Member.id
     channel: str = Column(String(50))
     date = Column(DateTime)
     content: str = Column(Text, nullable=True)

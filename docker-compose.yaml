@@ -1,4 +1,4 @@
-version: 3.9
+version: "3.9"
 
 services:
   mysql:
@@ -15,7 +15,7 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - ./bot/logs:/PyBoss/bot/logs
+      - ./pyboss/logs:/PyBoss/pyboss/logs
       - .:/PyBoss
     env_file:
       - .env

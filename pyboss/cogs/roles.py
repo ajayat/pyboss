@@ -5,9 +5,11 @@ from datetime import datetime
 
 import discord
 from discord.ext import commands
+from sqlalchemy import select, update
 
-from bot.controllers.guild import GuildController
-from bot.utils import database as db
+from pyboss.controllers.guild import GuildController
+from pyboss.models import Special
+from pyboss.utils import database
 
 
 class Roles(commands.Cog):
@@ -55,8 +57,8 @@ class Roles(commands.Cog):
         """
         await ctx.message.delete()
         message = await self.send_choice(ctx, "guild_choice")
-        sql = f"UPDATE specials SET message_id={message.id} WHERE name='guild_choice'"
-        db.execute(sql)
+        stmt = update(Special).where(name="guild_choice").values(message_id=message.id)
+        database.execute(stmt)
 
     @commands.Cog.listener("on_raw_reaction_add")
     @commands.guild_only()
@@ -64,8 +66,8 @@ class Roles(commands.Cog):
         """
         Update top role or send a DM message to the user to choice his sub roles
         """
-        sql = "SELECT message_id FROM specials WHERE name='guild_choice'"
-        (choice_msg_id,) = db.execute(sql, fetchone=True)
+        stmt = select(Special).where(name="guild_choice")
+        choice_msg_id = database.execute(stmt).message_id
         if choice_msg_id != payload.message_id or self.bot.user.id == payload.user_id:
             return  # exit if it's not for the guild_choice message
 
