@@ -27,18 +27,18 @@ def check_matter(schedule, msg):
     Check if the user write a correct matter and place him in blacklist if not.
     """
     content = msg.content.upper()
-    mod_member = MemberController(msg.author)
+    member_ctrl = MemberController(msg.author)
 
     with open(STATIC_DIR / "json/matters.json", encoding="utf-8") as wordlist:
         matters_wordlist = json.load(wordlist)
     if matters_wordlist.get(content):
         schedule.answers["matter"] = matters_wordlist[content]
 
-    elif not mod_member.blacklist_date:
-        mod_member.place_in_blacklist()
+    elif not member_ctrl.blacklist_date:
+        member_ctrl.place_in_blacklist()
         schedule.answers["matter"] = content.title()
     else:
-        timedelta = mod_member.blacklist_date - datetime.datetime.now()
+        timedelta = member_ctrl.blacklist_date - datetime.datetime.now()
         hours, minutes = (
             timedelta.total_seconds() // 3600,
             (timedelta.total_seconds() % 3600) // 60,

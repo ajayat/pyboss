@@ -8,13 +8,13 @@ repos:
         name: Fix Trailing Whitespace
     -   id: check-json
         name: JSON Syntax
+    -   id: detect-private-key
+    -   id: check-added-large-files
+        name: Check Large Files
     -   id: pretty-format-json
         name: JSON Pretty Format
         args:
             - --autofix
-    -   id: detect-private-key
-    -   id: check-added-large-files
-        name: Check Large Files
 
 -   repo: https://github.com/psf/black
     rev: 20.8b1

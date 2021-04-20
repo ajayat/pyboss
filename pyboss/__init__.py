@@ -3,7 +3,7 @@ import os
 from collections import namedtuple
 from pathlib import Path
 
-import toml as toml
+import toml
 from dotenv import load_dotenv
 
 __all__ = [
@@ -23,7 +23,7 @@ STATIC_DIR = _BOT_DIR / "static"
 
 def setup():
     load_dotenv()  # Loads .env file by default
-    log_config = toml.load(_BOT_DIR / "log-config.toml")
+    log_config = toml.load(_BOT_DIR.parent / "log-config.toml")
 
     if os.getenv("ENVIRONMENT") == "development":
         # All logger are herited from the root logger

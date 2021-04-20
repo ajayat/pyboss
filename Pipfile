@@ -7,6 +7,7 @@ name = "pypi"
 pre-commit = ">=2.11,<3.0"
 PyYAML = ">5.4,<6.0"
 pipenv = "*"
+pyboss = {editable = true, path = "."}
 
 [packages]
 discord = {py = ">=1.7,<2.0"}

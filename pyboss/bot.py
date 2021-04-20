@@ -12,7 +12,11 @@ logger = logging.getLogger(__name__)
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 
-def run() -> None:
+def run(token=None) -> None:
+    """
+    Runs the bot.
+    token: Optional. You can pass your Discord token here or in a .env file
+    """
     # Try to connect to the database or raise error
     database.test_connection()
 
@@ -24,4 +28,4 @@ def run() -> None:
     for cog in resolver.find_available_cogs():
         bot.load_extension(cog.__name__)
 
-    bot.run(TOKEN)  # raise LoginFailure if the token is invalid
+    bot.run(token or TOKEN)  # raise LoginFailure if the token is invalid

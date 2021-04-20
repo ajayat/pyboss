@@ -55,7 +55,7 @@ class Planning(Base):
 class Message(Base):
     __tablename__ = "messages"
 
-    id: int = Column(BigInteger, primary_key=True, autoincrement=True)
+    id: int = Column(BigInteger, primary_key=True)
     author_id: int = Column(BigInteger)  # foreign_key=Member.id
     channel: str = Column(String(50))
     date = Column(DateTime)
@@ -67,10 +67,10 @@ class Message(Base):
         )
 
 
-class Question(Base):
+class Quiz(Base):
     __tablename__ = "quiz"
 
-    id: int = Column(BigInteger, primary_key=True)
+    id: int = Column(BigInteger, primary_key=True, autoincrement=True)
     author: str = Column(String(50), default="Anonyme")
     theme: str = Column(String(80), nullable=True)
     question: str = Column(Text, unique=True)

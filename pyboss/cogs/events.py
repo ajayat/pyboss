@@ -3,9 +3,9 @@ from datetime import datetime
 
 import discord
 from discord.ext import commands
-from utils import database as db
 
 from pyboss.controllers.member import MemberController
+from pyboss.controllers.message import MessageController
 
 
 class Events(commands.Cog):
@@ -26,16 +26,15 @@ class Events(commands.Cog):
         """
         When a member join a guild, insert it in database or restore all its data
         """
-        if mod_member := MemberController(member):
+        member_ctrl = MemberController(member)
+        if member_ctrl.exists():
             await member.add_roles(
-                mod_member.sub_roles | {mod_member.top_role},  # union
+                member_ctrl.sub_roles | {member_ctrl.top_role},  # union
                 reason="The user was already register, re-attribute the main role",
             )
         else:
-            sql = "INSERT INTO members (member_id, name) VALUES (%s, %s)"
-            db.execute(sql, (member.id, member.name))
-            mod_member = MemberController(member)
-            default_role = mod_member.get_role_by_name("Non Vérifié")
+            member_ctrl.register()
+            default_role = member_ctrl.get_role_by_name("Non Vérifié")
             await member.add_roles(default_role, reason="User was not verified")
 
         text = f"{member.mention} a rejoint le serveur {member.guild.name}!"
@@ -59,17 +58,8 @@ class Events(commands.Cog):
         """
         Log message in database for users
         """
-        channel = (
-            "DMChannel"
-            if isinstance(ctx.channel, discord.DMChannel)
-            else ctx.channel.name
-        )
         if ctx.author.id != self.bot.user.id:
-            sql = (
-                "INSERT INTO messages (member_id, channel, content)"
-                "VALUES (%s, %s, %s)"
-            )
-            db.execute(sql, (ctx.author.id, channel, ctx.content))
+            MessageController(ctx.message).insert()
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
@@ -79,18 +69,18 @@ class Events(commands.Cog):
         if before.roles == after.roles:
             return
 
-        if mod_member := MemberController(after):
-            mod_member.sub_roles.clear()
+        member_ctrl = MemberController(after)
+        if member_ctrl.exists():
+            sub_roles = set()
             for role in after.roles:
                 if role.name in ("Prof", "Non Vérifié", "Élève G1", "Élève G2"):
-                    mod_member.update_db(top_role=role.name)
+                    member_ctrl.top_role = role
                 elif role.name.startswith("Groupe"):
-                    mod_member.update_db(class_group=int(role.name[-1]))
+                    member_ctrl.group_role = role
                 elif role.name != "@everyone":
-                    mod_member.sub_roles.add(role)
+                    sub_roles.add(role)
 
-            sub_roles_name = map(lambda r: r.name, mod_member.sub_roles)
-            mod_member.update_db(sub_roles=", ".join(sub_roles_name))
+            member_ctrl.sub_roles = sub_roles
         else:
             logging.error(f"The user {after.name} was not found in members table")
 

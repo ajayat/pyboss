@@ -4,9 +4,11 @@ import json
 
 import discord
 from discord.ext import commands
+from sqlalchemy import delete, insert, select, update
 
 from pyboss import STATIC_DIR
-from pyboss.utils import database as db
+from pyboss.models import Agenda, Planning, Special
+from pyboss.utils import database
 
 from .utils.checkers import is_guild_owner, is_schedule_channel
 from .utils.schedule import check_date, check_description, check_hours, check_matter
@@ -21,12 +23,14 @@ DAYS = ("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi")
 
 async def update_message_ref(fieldname, message: discord.Message):
     """
-    Update id of agenda or planning message in messages_id.json file
+    Update id of agenda or planning message in database
     """
-    sql = f"SELECT message_id FROM specials WHERE name='{fieldname}'"
-    (ex_message_id,) = db.execute(sql, fetchone=True)
-    sql = "UPDATE specials SET message_id=? WHERE name=?"
-    db.execute(sql, (message.id, fieldname))
+    ex_message_id = database.execute(
+        select(Special).where(Special.name == fieldname)
+    ).scalar_one
+    database.execute(
+        update(Special).values(message_id=message.id, name=fieldname)
+    )
     try:
         ex_message = await message.channel.fetch_message(ex_message_id)
     except (discord.NotFound, discord.HTTPException):
@@ -63,7 +67,8 @@ class Schedule:
                     "A quelle heure ? (Ex: 10h; 10h/12h…)", check_hours
                 )
                 await self.gen_question(
-                    'Voulez-vous ajouter des infos supplémentaires? ("votre contenu" ou "non")',
+                    'Voulez-vous ajouter des infos supplémentaires? '
+                    '("votre contenu" ou "non")',
                     check_description,
                     timeout=120,
                 )
@@ -86,10 +91,10 @@ class Schedule:
                 f" ou vos réponses n'étaient pas correct. {self.custom_response}"
             )
         else:
-            columns = ",".join(self.answers.keys())
-            values = ",".join(map(repr, self.answers.values()))
-            sql = f"INSERT INTO {self.table} ({columns}) VALUES ({values})"
-            db.execute(sql)
+            model = Agenda if self.table == 'agenda' else Planning
+            database.execute(
+                insert(model).values(**self.answers)
+            )
             await self.update_data()
         finally:
             for msg in self.traces:
@@ -120,8 +125,12 @@ class Schedule:
                 f"ou vos réponses n'étaient pas correct. {self.custom_response}"
             )
         else:
-            sql = f"DELETE FROM {self.table} WHERE matter=%s AND date=%s"
-            db.execute(sql, (self.answers["matter"], self.answers["date"]))
+            model = Agenda if self.table == 'agenda' else Planning
+            database.execute(
+                delete(model)
+                    .where(model.matter == self.answers["matter"],
+                           model.date == self.answers["date"])
+            )
             await self.update_data()
         finally:
             for msg in self.traces:
@@ -139,12 +148,14 @@ class Schedule:
         await msg_question.delete()
 
     async def update_data(self):
-        # fetch the database to get the list of rows ordered by date
-        sql = (
-            f"SELECT * FROM {self.table} "
-            f"WHERE class='{self.table_class}' AND date>=NOW() ORDER BY date"
-        )
-        result = db.execute(sql, fetchall=True)
+        """
+        Fetch the database to get the list of rows ordered by date
+        """
+        model = Agenda if self.table == 'agenda' else Planning
+        result = database.execute(
+            select(model).where(model.class_name == self.table_class,
+                                model.date >= datetime.datetime.now())
+        ).scalar_one
 
         next_date, message = None, ""
         for row in result:
@@ -192,11 +203,11 @@ class PlanningAndAgenda(commands.Cog):
         """
         await ctx.message.delete()
         if "agenda" in ctx.channel.name:
-            with open(STATIC_DIR / "text/agenda_rules.md", encoding="utf-8") as agenda:
+            with open(STATIC_DIR / "text/agenda_rules.md") as agenda:
                 content = agenda.read()
                 title = "Fonctionnement de l'agenda"
         else:
-            with open(STATIC_DIR / "text/planning_rules.md", encoding="utf-8") as planning:
+            with open(STATIC_DIR / "text/planning_rules.md") as planning:
                 content = planning.read()
                 title = "Fonctionnement du planning"
 

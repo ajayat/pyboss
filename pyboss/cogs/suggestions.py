@@ -2,8 +2,11 @@ from datetime import datetime
 
 import discord
 from discord.ext import commands
+from sqlalchemy import insert
 
-from pyboss.utils import database as db
+from pyboss import STATIC_DIR
+from pyboss.models import Suggestion
+from pyboss.utils import database
 
 
 def suggestion_channel(ctx):
@@ -12,7 +15,7 @@ def suggestion_channel(ctx):
     return False
 
 
-class Suggestion(commands.Cog):
+class SuggestionCog(commands.Cog):
     """
     Offers commands to allow members to propose suggestions and interact with them
     """
@@ -28,7 +31,7 @@ class Suggestion(commands.Cog):
         Send the rules for suggestion channel
         """
         await ctx.message.delete()
-        with open("../static/text/suggestions_rules.md", encoding="utf-8") as f:
+        with open(STATIC_DIR / "text/suggestions_rules.md", encoding="utf-8") as f:
             content = f.read()
         embed = discord.Embed(
             title="Fonctionnement des suggestions", description=content, colour=0xFF66FF
@@ -60,8 +63,11 @@ class Suggestion(commands.Cog):
 
         message = await channel.fetch_message(payload.message_id)
         if str(payload.emoji) == "✅":
-            sql = "INSERT INTO suggestions (author, description) VALUES (%s, %s)"
-            db.execute(sql, (message.author.name, message.content))
+            database.execute(
+                insert(Suggestion).values(
+                    author=message.author.name, description=message.content
+                )
+            )
 
         for reaction in message.reactions:
             if str(reaction.emoji) == "✅":

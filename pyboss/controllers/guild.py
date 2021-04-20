@@ -27,3 +27,5 @@ class GuildController:
             return discord.utils.get(self.members, id=member)
         except AttributeError:
             return None
+
+    # TODO: add methods publish_channel() etc...

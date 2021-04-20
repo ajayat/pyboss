@@ -7,6 +7,7 @@ import discord
 from discord.ext import commands
 from sqlalchemy import select, update
 
+from pyboss import STATIC_DIR
 from pyboss.controllers.guild import GuildController
 from pyboss.models import Special
 from pyboss.utils import database
@@ -27,14 +28,14 @@ class Roles(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        with open("bot/static/json/reacts_pairs.json", encoding="utf-8") as f:
+        with open(STATIC_DIR / "json/reacts_pairs.json", encoding="utf-8") as f:
             self.reacts_pairs = json.load(f)
 
     async def send_choice(self, ctx, name):
         """
         Generate a welcome message to choice roles to manage permissions
         """
-        with open(f"bot/static/text/{name}.md", encoding="utf-8") as content:
+        with open(STATIC_DIR / f"text/{name}.md", encoding="utf-8") as content:
             embed = discord.Embed(
                 title="Bienvenue!", colour=0xFF22FF, description=content.read()
             )

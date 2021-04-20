@@ -8,10 +8,12 @@ import string
 import discord
 from discord.ext import commands
 from emoji import emojize
+from sqlalchemy import insert
 
 from pyboss.controllers.guild import GuildController
 from pyboss.controllers.member import MemberController
-from pyboss.utils import database as db
+from pyboss.models import Quiz
+from pyboss.utils import database
 
 
 def quiz_channel(ctx):
@@ -42,7 +44,7 @@ class Question:
         self.bot = bot
         self.channel = channel
         self.guild = GuildController(channel.guild)
-        self.question = question
+        self.question_dict = question
         self.player_wins = set()
         self.player_loses = set()
         self.message = None
@@ -55,15 +57,15 @@ class Question:
         author - them - name - question - propositions - response
         """
         embed = discord.Embed(
-            title=self.question["question"],
+            title=self.question_dict["question"],
             colour=random.choice(self.COLOURS),
-            description=self.question["propositions"],
+            description=self.question_dict["propositions"],
         )
-        embed.set_author(name=self.question["theme"])
-        embed.set_footer(text=f"Auteur: {self.question['author']}")
+        embed.set_author(name=self.question_dict["theme"])
+        embed.set_footer(text=f"Auteur: {self.question_dict['author']}")
         self.message = await self.channel.send(embed=embed)
 
-        for line in self.question["propositions"].split("\n"):
+        for line in self.question_dict["propositions"].split("\n"):
             # line is of the form "A) This is a proposition"
             if line:
                 # Get emoji from it name that's depends on the first letter
@@ -111,7 +113,7 @@ class Question:
         return self.player_wins, self.player_loses
 
 
-class Quiz(commands.Cog):
+class QuizCog(commands.Cog):
     """
     Quiz can permit to obtain XP and level up...
     """
@@ -141,7 +143,7 @@ class Quiz(commands.Cog):
         Générer une question de quiz aléatoire
         """
         sql = "SELECT * FROM quiz ORDER BY RAND () LIMIT 1"
-        question_dict = db.execute(sql, fetchone=True, dictionary=True)
+        question_dict = database.execute(sql)
         question = Question(self.bot, ctx.channel, question_dict)
         self.active_questions.append(question)
         await question.send_question(timeout=30.0)
@@ -196,7 +198,7 @@ class Quiz(commands.Cog):
             return
         self.party_active, self.scores = True, {}
         sql = f"SELECT * FROM quiz ORDER BY RAND() LIMIT {nb_questions}"
-        questions_dict = db.execute(sql, fetchall=True, dictionary=True)
+        questions_dict = database.execute(sql)
 
         for question_dict in questions_dict:
             question = Question(self.bot, ctx.channel, question_dict)
@@ -281,12 +283,15 @@ class Quiz(commands.Cog):
                     f"The question {question} hasn't response or propositions"
                 )
             propositions = "\n".join(propositions)
-            sql = (
-                "INSERT INTO quiz (author, theme, question, propositions, response) "
-                "VALUES (%s, %s, %s, %s, %s)"
+            database.execute(
+                insert(Quiz).values(
+                    author=ctx.author.name,
+                    theme=theme,
+                    question=question,
+                    propositions=propositions,
+                    answer=response,
+                )
             )
-            db.execute(sql, (ctx.author.name, theme, question, propositions, response))
-
             mod_member = MemberController(ctx.author)
             mod_member.XP += 500
             embed = discord.Embed(
@@ -300,4 +305,4 @@ class Quiz(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(Quiz(bot))
+    bot.add_cog(QuizCog(bot))

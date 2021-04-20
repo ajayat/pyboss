@@ -1,3 +1,4 @@
+import logging
 from itertools import cycle
 
 import discord
@@ -8,6 +9,8 @@ from pyboss.controllers.guild import GuildController
 from .utils import youtube
 from .utils.checkers import is_guild_owner
 
+logger = logging.getLogger(__name__)
+
 
 class Commands(commands.Cog):
     def __init__(self, bot):
@@ -17,7 +20,7 @@ class Commands(commands.Cog):
     @commands.command(aliases=["status"])
     @commands.guild_only()
     @is_guild_owner()
-    async def change_status(self, _, *params):
+    async def change_status(self, ctx, *params):
         """
         Change le status du bot par des vidéos correspondantes à la recherche
         """
@@ -26,11 +29,17 @@ class Commands(commands.Cog):
         for video in youtube.search(query, n=50):
             videos.append(discord.Streaming(**video))
 
-        self.status = cycle(videos)
+        if len(videos) > 0:
+            self.status = cycle(videos)
+        else:
+            ctx.send("Aucune vidéo n'a été trouvée")
 
     @tasks.loop(seconds=30)
     async def loop_status(self):
-        await self.bot.change_presence(activity=next(self.status))
+        try:
+            await self.bot.change_presence(activity=next(self.status))
+        except discord.errors.HTTPException:
+            logger.error("Can't change bot presence")
 
     @commands.Cog.listener("on_ready")
     async def before_loop_status(self):
@@ -63,7 +72,7 @@ class Commands(commands.Cog):
         if not id.isdigit():
             await ctx.send(f"{mention} est incorrect")
 
-        elif member := GuildController(ctx.guild).get_member(int(id)):
+        elif member := GuildController(ctx.guild).get_member_by_id(int(id)):
             embed = discord.Embed(title="Profil", colour=0xFFA325)
             embed.set_author(name=member.name)
             embed.set_thumbnail(url=member.avatar_url)
