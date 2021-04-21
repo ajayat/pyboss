@@ -2,7 +2,7 @@ import asyncio
 
 import discord
 import youtube_dl
-from discord.ext import commands
+from discord.ext.commands import Cog, command, guild_only
 
 from .utils import youtube
 
@@ -22,7 +22,7 @@ class Video:
         self.stream_url = video_format["url"]
 
 
-class Music(commands.Cog):
+class Music(Cog):
     """
     Offers an interface with typicals commands to play music in voice channel
     """
@@ -31,8 +31,8 @@ class Music(commands.Cog):
         self.bot = bot
         self.musics = {}
 
-    @commands.command(name="play", aliases=["p"])
-    @commands.guild_only()
+    @command(name="play", aliases=["p"])
+    @guild_only()
     async def play(self, ctx, *params):
         """
         Joue la musique correspondante à la recherche
@@ -86,8 +86,8 @@ class Music(commands.Cog):
 
         voice_client.play(source, after=next_song)
 
-    @commands.command()
-    @commands.guild_only()
+    @command()
+    @guild_only()
     async def skip(self, ctx):
         """
         Passer à la musique suivante, si disponible
@@ -101,22 +101,22 @@ class Music(commands.Cog):
             video = self.musics[ctx.guild][0]
             await ctx.send(f"Morceau en cours: **{video.name}** \n{video.url}")
 
-    @commands.command()
-    @commands.guild_only()
+    @command()
+    @guild_only()
     async def pause(self, ctx):
         voice_client = ctx.guild.voice_client
         if not voice_client.is_paused():
             voice_client.pause()
 
-    @commands.command()
-    @commands.guild_only()
+    @command()
+    @guild_only()
     async def resume(self, ctx):
         voice_client = ctx.guild.voice_client
         if voice_client.is_paused():
             voice_client.resume()
 
-    @commands.command(aliases=["quit"])
-    @commands.guild_only()
+    @command(aliases=["quit"])
+    @guild_only()
     async def leave(self, ctx):
         """
         Arrêter la musique et la queue

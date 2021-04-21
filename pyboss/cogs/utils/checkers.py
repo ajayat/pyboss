@@ -23,3 +23,21 @@ def is_schedule_channel():
         return False
 
     return commands.check(predicate)
+
+
+def is_quiz_channel():
+    def predicate(ctx: commands.Context) -> bool:
+        if not isinstance(ctx.channel, discord.DMChannel):
+            return "quiz" in ctx.channel.name or "test" in ctx.channel.name
+        return False
+
+    return commands.check(predicate)
+
+
+def is_suggestion_channel():
+    def predicate(ctx: commands.Context) -> bool:
+        if not isinstance(ctx.channel, discord.DMChannel):
+            return "suggestion" in ctx.channel.name
+        return False
+
+    return commands.check(predicate)

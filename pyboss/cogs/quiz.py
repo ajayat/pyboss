@@ -4,22 +4,20 @@ import logging
 import math
 import random
 import string
+from operator import itemgetter
 
 import discord
-from discord.ext import commands
+from cogs.utils.checkers import is_quiz_channel
+from discord.ext.commands import Cog, command, guild_only
 from emoji import emojize
-from sqlalchemy import insert
+from sqlalchemy import func, insert, select
 
-from pyboss.controllers.guild import GuildController
-from pyboss.controllers.member import MemberController
-from pyboss.models import Quiz
+from pyboss.models import QuestionModel
 from pyboss.utils import database
+from pyboss.wrappers.guild import GuildWrapper
+from pyboss.wrappers.member import MemberWrapper
 
-
-def quiz_channel(ctx):
-    if not isinstance(ctx, discord.DMChannel):
-        return "quiz" in ctx.channel.name or "test" in ctx.channel.name
-    return False
+logger = logging.getLogger(__name__)
 
 
 class Question:
@@ -40,32 +38,37 @@ class Question:
         "Avez vous vu l'heure !? Temps terminé !",
     ]
 
-    def __init__(self, bot, channel: discord.TextChannel, question: dict):
+    def __init__(self, bot, channel: discord.TextChannel, question: QuestionModel):
         self.bot = bot
         self.channel = channel
-        self.guild = GuildController(channel.guild)
-        self.question_dict = question
-        self.player_wins = set()
-        self.player_loses = set()
+        self.guild = GuildWrapper(channel.guild)
+        self.winners = []  # We needs a list to preserve insertion order
+        self.losers = []
         self.message = None
+        # Get attributes from the question fetched
+        self.author: str = question.author
+        self.theme: str = question.theme
+        self.title: str = question.title
+        self.propositions: str = question.propositions
+        self.answer: str = question.answer
 
-    async def send_question(self, timeout=30.0):
+    async def send(self):
         """
         Send a question in Quiz channel
 
         Question is a dict fetched from the quiz table that's contains field:
-        author - them - name - question - propositions - response
+        author - theme - question - propositions - response
         """
         embed = discord.Embed(
-            title=self.question_dict["question"],
+            title=self.title,
             colour=random.choice(self.COLOURS),
-            description=self.question_dict["propositions"],
+            description=self.propositions,
         )
-        embed.set_author(name=self.question_dict["theme"])
-        embed.set_footer(text=f"Auteur: {self.question_dict['author']}")
+        embed.set_author(name=self.theme)
+        embed.set_footer(text=f"Auteur: {self.author}")
         self.message = await self.channel.send(embed=embed)
 
-        for line in self.question_dict["propositions"].split("\n"):
+        for line in self.propositions.split("\n"):
             # line is of the form "A) This is a proposition"
             if line:
                 # Get emoji from it name that's depends on the first letter
@@ -73,9 +76,7 @@ class Question:
                 emoji = emojize(f":regional_indicator:{char}", use_aliases=True)
                 await self.message.add_reaction(emoji)
 
-        await asyncio.sleep(timeout)
-
-    async def send_rank(self):
+    async def send_rank(self) -> tuple[list, list]:
         """
         Check reactions, send a rank info and ajust XP of the members
         """
@@ -86,21 +87,21 @@ class Question:
         def lose_score(level):
             return math.ceil(20 * math.sqrt(level))
 
-        description = "**Gagnants**: \n" if self.player_wins else ""
-        nb_players = len(self.player_wins) + len(self.player_loses)
+        description = "**Gagnants**: \n" if self.losers else ""
+        nb_players = len(self.winners) + len(self.winners)
 
-        for id, i in zip(self.player_wins, itertools.count(1)):
-            mod_member = self.guild.get_member(id)
-            score = win_score(nb_players, i, mod_member.level)
-            description += f"{i}. {mod_member.name}: +{score}XP \n"
-            mod_member.XP += score
+        for id, i in zip(self.winners, itertools.count(1)):
+            member = self.guild.get_member(id)
+            score = win_score(nb_players, i, member.level)
+            description += f"{i}. {member.name}: +{score}XP \n"
+            member.XP += score
 
-        description += "\n**Perdants**: \n" if self.player_loses else ""
-        for id in self.player_loses:
-            mod_member = self.guild.get_member(id)
+        description += "\n**Perdants**: \n" if self.losers else ""
+        for id in self.losers:
+            member = self.guild.get_member(id)
             score = lose_score(nb_players)
-            description += f":small_red_triangle_down: {mod_member.name}: -{score}XP \n"
-            mod_member.XP -= score
+            description += f":small_red_triangle_down: {member.name}: -{score}XP \n"
+            member.XP -= score
 
         embed = discord.Embed(
             title=":hourglass: Résultats de la question:",
@@ -110,126 +111,102 @@ class Question:
         embed.set_footer(text=random.choice(self.TIMEOUT_MESSAGES))
         await self.channel.send(embed=embed)
 
-        return self.player_wins, self.player_loses
+        return self.winners, self.losers
 
 
-class QuizCog(commands.Cog):
+class Quiz(Cog):
     """
     Quiz can permit to obtain XP and level up...
     """
 
     def __init__(self, bot):
         self.bot = bot
-        self.party_active = False
-        self.active_questions = []
+        self.actives = {}
         self.scores = {}
 
-    @commands.Cog.listener()
-    @commands.guild_only()
-    async def on_message(self, msg):
+    @Cog.listener()
+    @guild_only()
+    async def on_message(self, msg: discord.Message):
         """Obtain a few XP per message"""
         if msg.author.id != self.bot.user.id and not msg.content.startswith("!"):
             try:
-                mod_member = MemberController(msg.author)
+                mod_member = MemberWrapper(msg.author)
                 mod_member.XP += 25
             except AttributeError:
                 pass
 
-    @commands.command(name="question", aliases=["q"])
-    @commands.guild_only()
-    @commands.check(quiz_channel)
-    async def question(self, ctx):
-        """
-        Générer une question de quiz aléatoire
-        """
-        sql = "SELECT * FROM quiz ORDER BY RAND () LIMIT 1"
-        question_dict = database.execute(sql)
-        question = Question(self.bot, ctx.channel, question_dict)
-        self.active_questions.append(question)
-        await question.send_question(timeout=30.0)
-        self.active_questions.remove(question)
-        await question.send_rank()
-
-    @commands.Cog.listener("on_reaction_add")
-    @commands.guild_only()
-    async def _reaction_on_question(self, reaction, player):
+    @Cog.listener("on_reaction_add")
+    @guild_only()
+    @is_quiz_channel()
+    async def _reaction_on_question(self, reaction, player: discord.User):
         """
         Remove ex reactions of the user in a quiz question
         """
-
-        def get_question_if_active(question):
-            for q in self.active_questions:
-                if question.id == q.message.id:
-                    return q
-            return None
-
         msg = reaction.message
-        question_class = get_question_if_active(msg)
-        if player == self.bot.user or not question_class or reaction.count <= 1:
+        question = self.actives.get(msg.channel.id)
+        if not question or reaction.count <= 1:
             return
 
-        char = question_class.question_dict["response"].lower()
-        correct_reaction = emojize(f"regional_indicator_{char}", use_aliases=True)
+        char = question.answer.lower()
+        emoji_answer = emojize(f"regional_indicator_{char}", use_aliases=True)
 
         for react in msg.reactions:
             async for user in react.users():
-                if user == player and react is reaction:
-                    wins, loses = (
-                        question_class.player_wins,
-                        question_class.player_loses,
-                    )
-                    if react.emoji == correct_reaction:
-                        wins.add(user.id)
-                        loses.remove(user.id)
+                if react is reaction and user is player:  # Player's current reaction
+                    if react.emoji == emoji_answer:
+                        question.player_wins.append(user.id)
+                        question.player_loses.remove(user.id)
                     else:
-                        loses.add(user.id)
-                        wins.remove(user.id)
-                elif user.id != self.bot.user.id:
+                        question.player_loses.append(user.id)
+                        question.player_wins.remove(user.id)
+                elif user is player:  # Removes previous user reaction
                     await react.remove(user)
 
-    @commands.command(name="quiz")
-    @commands.guild_only()
-    @commands.check(quiz_channel)
-    async def many_questions(self, ctx, nb_questions=10):
+    @command(name="questions", aliases=["q", "question", "quiz"])
+    @guild_only()
+    @is_quiz_channel()
+    async def questions(self, ctx, nb_questions: int = 1):
         """
-        Lancer une partie de n question
+        Génère n questions ou une seuel si aucun argument n'est donné.
         """
-        if self.party_active:
+
+        def fetch_questions(number: int = 1):
+            rand = func.random if database.get_dialect() == "mysql" else func.rand
+            return database.execute(select(Question).order_by(rand()).limit(number))
+
+        if self.actives.get(ctx.channel.id):
             return
-        self.party_active, self.scores = True, {}
-        sql = f"SELECT * FROM quiz ORDER BY RAND() LIMIT {nb_questions}"
-        questions_dict = database.execute(sql)
+        self.scores.clear()
 
-        for question_dict in questions_dict:
-            question = Question(self.bot, ctx.channel, question_dict)
-            await question.send_question(timeout=30.0)
-            self.active_questions.append(question)
+        for question_model in fetch_questions(nb_questions):
+            question = Question(self.bot, ctx.channel, question_model)
+            await question.send()
+            self.actives[ctx.channel.id] = question
             await asyncio.sleep(30.0)
-            self.active_questions.remove(question)
-            wins, _ = await question.send_rank()
+            await question.send_rank()
+            del self.actives[ctx.channel.id]
 
-            for id in wins:
-                mod_member = GuildController(ctx.guild).get_member(id)
-                self.scores[mod_member.name] = self.scores.get(mod_member.name, 0) + 1
-            await asyncio.sleep(30.0)
+            winners, _ = await question.send_rank()
+            for id in winners:
+                member = GuildWrapper(ctx.guild).get_member_by_id(id)
+                self.scores[member.name] = self.scores.get(member.name, 0) + 1
 
         await self.get_rank(ctx)
-        self.party_active = False
 
-    @commands.command(name="rank")
-    @commands.guild_only()
-    @commands.check(quiz_channel)
+    @command(name="rank")
+    @guild_only()
+    @is_quiz_channel()
     async def get_rank(self, ctx):
         """
         Affiche le classement de la partie en cours
         """
-        if not self.party_active:
+        if not self.actives.get(ctx.channel.id):
             return
         titre, description = "Classements du Quiz:", ""
-        association = sorted(self.scores.items(), key=lambda c: c[1], reverse=True)
+        classement = sorted(self.scores.items(), key=itemgetter(1), reverse=True)
         medals = [":first_place:", ":second_place:", ":third_place:"]
 
-        for rang, (player, score) in enumerate(association):
+        for rang, (player, score) in enumerate(classement):
             rang = medals[rang] if rang < 3 else rang + 1
             description += f"{rang}  {player} : {score} points \n"
 
@@ -237,15 +214,15 @@ class QuizCog(commands.Cog):
             embed=discord.Embed(title=titre, colour=0x00FF00, description=description)
         )
 
-    @commands.command(name="question_add", aliases=["q_add"])
-    @commands.check(quiz_channel)
+    @command(name="question_add", aliases=["q_add"])
+    @is_quiz_channel()
     async def question_add_procedure(self, ctx):
         """
         Ajouter une question dans la base de donnée (procedure)
         """
         await ctx.message.delete()
 
-        async def send_question(q, timeout=60.0):
+        async def send_question(q: str, timeout=60.0) -> str:
             msg = await ctx.send(q)
             msg_response = await self.bot.wait_for(
                 "message", check=lambda m: m.author == ctx.author, timeout=timeout
@@ -279,12 +256,10 @@ class QuizCog(commands.Cog):
                 propositions[i] = f"{letter}) {p}"
 
             if not response:
-                logging.error(
-                    f"The question {question} hasn't response or propositions"
-                )
+                logger.error(f"The question {question} hasn't response or propositions")
             propositions = "\n".join(propositions)
             database.execute(
-                insert(Quiz).values(
+                insert(Question).values(
                     author=ctx.author.name,
                     theme=theme,
                     question=question,
@@ -292,7 +267,7 @@ class QuizCog(commands.Cog):
                     answer=response,
                 )
             )
-            mod_member = MemberController(ctx.author)
+            mod_member = MemberWrapper(ctx.author)
             mod_member.XP += 500
             embed = discord.Embed(
                 title="Merci!",
@@ -305,4 +280,4 @@ class QuizCog(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(QuizCog(bot))
+    bot.add_cog(Quiz(bot))

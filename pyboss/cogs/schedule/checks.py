@@ -4,7 +4,7 @@ import logging
 import re
 
 from pyboss import STATIC_DIR
-from pyboss.controllers.member import MemberController
+from pyboss.wrappers.member import MemberWrapper
 
 REGEX_HOUR = re.compile(
     r"^(?P<start>[0-1]?[0-9]|2[0-4])[hH]?[-àa; /:]*(?P<end>[0-1]?[0-9]|2[0-4])?[hH]?$"
@@ -27,7 +27,7 @@ def check_matter(schedule, msg):
     Check if the user write a correct matter and place him in blacklist if not.
     """
     content = msg.content.upper()
-    member_ctrl = MemberController(msg.author)
+    member_ctrl = MemberWrapper(msg.author)
 
     with open(STATIC_DIR / "json/matters.json", encoding="utf-8") as wordlist:
         matters_wordlist = json.load(wordlist)

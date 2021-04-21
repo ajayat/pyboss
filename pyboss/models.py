@@ -4,10 +4,21 @@ from sqlalchemy.orm import declarative_base
 Base = declarative_base()
 
 
-class Member(Base):
+class GuildModel(Base):
+    __tablename__ = "guilds"
+
+    id: int = Column(BigInteger, primary_key=True)
+    name: str = Column(String(50), unique=True)
+
+    def __repr__(self):
+        return f"Guild(id={self.id}, name={self.name})"
+
+
+class MemberModel(Base):
     __tablename__ = "members"
 
     id: int = Column(BigInteger, primary_key=True)
+    guild_id: int = Column(BigInteger)
     name: str = Column(String(50), unique=True)
     top_role: str = Column(String(50), nullable=True)
     sub_roles: str = Column(Text, nullable=True)
@@ -20,10 +31,11 @@ class Member(Base):
         return f"Member(id={self.id}, name={self.name}, role={self.top_role})"
 
 
-class Agenda(Base):
+class AgendaModel(Base):
     __tablename__ = "agenda"
 
     id: int = Column(BigInteger, primary_key=True)
+    guild_id: int = Column(BigInteger)
     class_name: str = Column(String(30))
     subject: str = Column(String(50))
     date = Column(Date)
@@ -35,10 +47,11 @@ class Agenda(Base):
         )
 
 
-class Planning(Base):
+class PlanningModel(Base):
     __tablename__ = "planning"
 
     id: int = Column(BigInteger, primary_key=True)
+    guild_id: int = Column(BigInteger)
     class_name: str = Column(String(30))
     subject: str = Column(String(50))
     date = Column(Date)
@@ -52,10 +65,11 @@ class Planning(Base):
         )
 
 
-class Message(Base):
+class MessageModel(Base):
     __tablename__ = "messages"
 
     id: int = Column(BigInteger, primary_key=True)
+    guild_id: int = Column(BigInteger)
     author_id: int = Column(BigInteger)  # foreign_key=Member.id
     channel: str = Column(String(50))
     date = Column(DateTime)
@@ -67,13 +81,14 @@ class Message(Base):
         )
 
 
-class Quiz(Base):
-    __tablename__ = "quiz"
+class QuestionModel(Base):
+    __tablename__ = "questions"
 
     id: int = Column(BigInteger, primary_key=True, autoincrement=True)
+    guild_id: int = Column(BigInteger)
     author: str = Column(String(50), default="Anonyme")
     theme: str = Column(String(80), nullable=True)
-    question: str = Column(Text, unique=True)
+    title: str = Column(Text, unique=True)
     propositions: str = Column(Text)
     answer: str = Column(String(1))
 
@@ -83,11 +98,12 @@ class Quiz(Base):
         )
 
 
-class Special(Base):
+class SpecialModel(Base):
     __tablename__ = "specials"
 
     message_id: int = Column(BigInteger, primary_key=True)
-    name: str = Column(String(50), unique=True)
+    guild_id: int = Column(BigInteger)
+    name: str = Column(String(50))
     date = Column(DateTime, nullable=True)
 
     def __repr__(self):
@@ -96,7 +112,7 @@ class Special(Base):
         )
 
 
-class Suggestion(Base):
+class SuggestionModel(Base):
     __tablename__ = "suggestions"
 
     id: int = Column(BigInteger, primary_key=True, autoincrement=True)

@@ -4,11 +4,11 @@ from typing import NoReturn
 import discord
 from sqlalchemy import insert
 
-from pyboss.models import Message
+from pyboss.models import MessageModel
 from pyboss.utils import database
 
 
-class MessageController:
+class MessageWrapper:
     def __init__(self, message: discord.Message):
         self.member = message
 
@@ -25,7 +25,7 @@ class MessageController:
             else self.message.channel.name
         )
         database.execute(
-            insert(Message).values(
+            insert(MessageModel).values(
                 author_id=self.message.author.id,
                 channel=channel,
                 date=datetime.datetime.now(),

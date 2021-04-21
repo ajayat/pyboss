@@ -63,6 +63,10 @@ def execute(stmt):
     return None
 
 
+def get_dialect() -> str:
+    return engine.dialect.name
+
+
 def array_to_string(arr, attr=None) -> str:
     """
     Joins values to store the data in MySQL column.

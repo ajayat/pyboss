@@ -1,24 +1,25 @@
 import logging
 from itertools import cycle
+from typing import Optional
 
 import discord
-from discord.ext import commands, tasks
+from cogs.utils import youtube
+from cogs.utils.checkers import is_guild_owner
+from discord.ext import tasks
+from discord.ext.commands import Cog, command, guild_only
 
-from pyboss.controllers.guild import GuildController
-
-from .utils import youtube
-from .utils.checkers import is_guild_owner
+from pyboss.wrappers.guild import MemberWrapper
 
 logger = logging.getLogger(__name__)
 
 
-class Commands(commands.Cog):
+class Commands(Cog):
     def __init__(self, bot):
         self.bot = bot
         self.status = cycle((discord.Game(name=f"{bot.command_prefix}help"),))
 
-    @commands.command(aliases=["status"])
-    @commands.guild_only()
+    @command(aliases=["status"])
+    @guild_only()
     @is_guild_owner()
     async def change_status(self, ctx, *params):
         """
@@ -41,38 +42,37 @@ class Commands(commands.Cog):
         except discord.errors.HTTPException:
             logger.error("Can't change bot presence")
 
-    @commands.Cog.listener("on_ready")
+    @Cog.listener("on_ready")
     async def before_loop_status(self):
         self.loop_status.start()
 
-    @commands.command()
-    @commands.guild_only()
-    async def clear(self, ctx, n=1):
+    @command()
+    @guild_only()
+    async def clear(self, ctx, n: int = 1):
         """
         Supprime les n message du salon
         """
         await ctx.channel.purge(limit=int(n) + 1)
 
-    @commands.command()
-    @commands.guild_only()
-    async def send(self, ctx, *params):
+    @command()
+    @guild_only()
+    async def send(self, ctx, message: str):
         """
         Envoie un message dans le salon actuel
         """
-        await ctx.send(" ".join(params))
+        await ctx.send(message)
         await ctx.message.delete()
 
-    @commands.command()
-    @commands.guild_only()
-    async def profile(self, ctx, mention=None):
+    @command(name="profile", aliases=["member_info"])
+    @guild_only()
+    async def profile(self, ctx, member: Optional[discord.Member]):
         """
         Consulter les infos d'un membre
         """
-        id = mention.strip("<>!?@&") if mention else ctx.author.id
-        if not id.isdigit():
-            await ctx.send(f"{mention} est incorrect")
+        if not member:
+            member = ctx.author
 
-        elif member := GuildController(ctx.guild).get_member_by_id(int(id)):
+        if member := MemberWrapper(member):
             embed = discord.Embed(title="Profil", colour=0xFFA325)
             embed.set_author(name=member.name)
             embed.set_thumbnail(url=member.avatar_url)

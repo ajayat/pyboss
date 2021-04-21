@@ -1,21 +1,17 @@
 from datetime import datetime
 
 import discord
-from discord.ext import commands
+from discord.ext.commands import Cog, command, guild_only, is_owner
 from sqlalchemy import insert
 
 from pyboss import STATIC_DIR
-from pyboss.models import Suggestion
+from pyboss.models import SuggestionModel
 from pyboss.utils import database
 
-
-def suggestion_channel(ctx):
-    if not isinstance(ctx.channel, discord.DMChannel):
-        return "suggestion" in ctx.channel.name
-    return False
+from .utils.checkers import is_suggestion_channel
 
 
-class SuggestionCog(commands.Cog):
+class Suggestion(Cog):
     """
     Offers commands to allow members to propose suggestions and interact with them
     """
@@ -23,9 +19,9 @@ class SuggestionCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name="suggestions_rules", hidden=True)
-    @commands.is_owner()
-    @commands.check(suggestion_channel)
+    @command(name="suggestions_rules", hidden=True)
+    @is_owner()
+    @is_suggestion_channel()
     async def send_suggestions_rules(self, ctx):
         """
         Send the rules for suggestion channel
@@ -42,52 +38,46 @@ class SuggestionCog(commands.Cog):
         )
         await ctx.send(embed=embed)
 
-    @commands.Cog.listener("on_message")
-    async def make_suggestion(self, message):
-        if suggestion_channel(message):
-            await message.add_reaction("✅")
-            await message.add_reaction("❌")
+    @Cog.listener("on_message")
+    @is_suggestion_channel()
+    async def make_suggestion(self, ctx):
+        await ctx.add_reaction("✅")
+        await ctx.add_reaction("❌")
 
-    @commands.Cog.listener("on_raw_reaction_add")
-    @commands.guild_only()
+    @Cog.listener("on_raw_reaction_add")
+    @guild_only()
+    @is_suggestion_channel()
+    @is_owner()
     async def decisive_reaction(self, payload):
         """
         Send result to all users when the owner add a reaction
         """
-        channel = self.bot.get_channel(payload.channel_id)
-        if (
-            payload.user_id != channel.guild.owner_id
-            or "suggestion" not in channel.name
-        ):
+        if str(payload.emoji) not in ("✅", "❌"):
             return
+        accepted: bool = str(payload.emoji) == "✅"
 
+        channel = self.bot.get_channel(payload.channel_id)
         message = await channel.fetch_message(payload.message_id)
-        if str(payload.emoji) == "✅":
-            database.execute(
-                insert(Suggestion).values(
-                    author=message.author.name, description=message.content
-                )
+        if accepted:
+            stmt = insert(SuggestionModel).values(
+                author=message.author.name, description=message.content
             )
-
+            database.execute(stmt)
         for reaction in message.reactions:
             if str(reaction.emoji) == "✅":
                 async for user in reaction.users():
-                    await self.send_dm_suggestion_state(
-                        user, str(payload.emoji), message
-                    )
-        await self.send_dm_suggestion_state(message.author, str(payload.emoji), message)
+                    await self.send_dm_suggestion_state(user, accepted, message)
+        await self.send_dm_suggestion_state(message.author, accepted, message)
 
         await message.delete()
 
-    async def send_dm_suggestion_state(self, user, decisive_emoji, suggestion):
+    async def send_dm_suggestion_state(self, user, accepted: bool, suggestion):
         """
         Send a message to a member who has voted to inform of the state of the reaction
         """
-        if user.id == self.bot.user.id or decisive_emoji not in ("✅", "❌"):
-            return
         citation = "\n> ".join(suggestion.content.split("\n"))
 
-        if decisive_emoji == "✅":
+        if accepted:
             embed = discord.Embed(
                 colour=0xFF22BB,
                 title="Suggestion acceptée!",
@@ -109,7 +99,7 @@ class SuggestionCog(commands.Cog):
                     f"vous avez voté a été malheureusement refusée:\n> {citation}\n\n"
                 ),
             )
-        embed.set_thumbnail(url="static/img/alert.png")
+        embed.set_thumbnail(url=STATIC_DIR / "img/alert.png")
         embed.set_footer(
             text=f"{self.bot.user.name} | This message was sent automatically"
         )

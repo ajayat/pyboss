@@ -2,18 +2,20 @@ import asyncio
 import json
 import logging
 from datetime import datetime
+from typing import Union
 
 import discord
-from discord.ext import commands
+from discord.ext.commands import Cog, command, dm_only, guild_only, is_owner
 from sqlalchemy import select, update
 
 from pyboss import STATIC_DIR
-from pyboss.controllers.guild import GuildController
-from pyboss.models import Special
+from pyboss.models import MemberModel, SpecialModel
 from pyboss.utils import database
+from pyboss.wrappers.guild import GuildWrapper
+from pyboss.wrappers.member import MemberWrapper
 
 
-class Roles(commands.Cog):
+class Roles(Cog):
     """
     Offers an interface to manage roles and send messages
     to choice his roles inside the guild
@@ -31,7 +33,7 @@ class Roles(commands.Cog):
         with open(STATIC_DIR / "json/reacts_pairs.json", encoding="utf-8") as f:
             self.reacts_pairs = json.load(f)
 
-    async def send_choice(self, ctx, name):
+    async def send_choice(self, ctx, name: str) -> discord.Message:
         """
         Generate a welcome message to choice roles to manage permissions
         """
@@ -50,34 +52,37 @@ class Roles(commands.Cog):
 
         return message
 
-    @commands.command(name="guild_choice", hidden=True)
-    @commands.is_owner()
+    @command(name="guild_choice", hidden=True)
+    @is_owner()
     async def send_guild_choice(self, ctx):
         """
         Generate a welcome message to choice a role in order to manage permissions
         """
         await ctx.message.delete()
         message = await self.send_choice(ctx, "guild_choice")
-        stmt = update(Special).where(name="guild_choice").values(message_id=message.id)
-        database.execute(stmt)
+        database.execute(
+            update(SpecialModel)
+            .where(SpecialModel.name == "guild_choice")
+            .values(message_id=message.id)
+        )
 
-    @commands.Cog.listener("on_raw_reaction_add")
-    @commands.guild_only()
+    @Cog.listener("on_raw_reaction_add")
+    @guild_only()
     async def reaction_guild_choice(self, payload):
         """
         Update top role or send a DM message to the user to choice his sub roles
         """
-        stmt = select(Special).where(name="guild_choice")
-        choice_msg_id = database.execute(stmt).message_id
-        if choice_msg_id != payload.message_id or self.bot.user.id == payload.user_id:
-            return  # exit if it's not for the guild_choice message
+        choice_msg = database.execute(
+            select(SpecialModel).where(SpecialModel.name == "guild_choice")
+        ).scalar_one
+        if choice_msg.message_id != payload.message_id:
+            return  # Exit if it's not for the guild_choice message
 
-        guild = GuildController(payload.guild)
-        member = guild.get_member(payload.member)
+        member = MemberWrapper(payload.member)
         try:
             role_name = self.reacts_pairs["guild_choice"][payload.emoji.name]
             await member.remove_roles(member.top_role)
-            await member.add_roles(member.get_role_by_name(role_name))
+            await member.add_roles(member.guild.get_role_by_name(role_name))
         except KeyError:
             await member.dm_channel.send(
                 f"{member.mention} Cette réaction est invalide"
@@ -89,43 +94,50 @@ class Roles(commands.Cog):
             message = await self.send_choice(member, fieldname)
             member.choice_msg_id = message.id
 
-    @commands.Cog.listener("on_raw_reaction_add")
-    @commands.Cog.listener("on_raw_reaction_remove")
-    @commands.dm_only()
+    @Cog.listener("on_raw_reaction_add")
+    @Cog.listener("on_raw_reaction_remove")
+    @dm_only()
     async def reaction_sub_role_add(self, payload):
         """
-        React when a member choice his roles  in DM channel
+        React when a member choice his roles in DM channel
         """
-        guild = GuildController(payload.guild)
-        mod_member = guild.get_member(payload.user_id)
 
-        if mod_member and payload.message_id == mod_member.dm_choice_msg_id:
-            if mod_member.validate_state == 2:
-                await mod_member.send(
-                    "Vous ne pouvez plus redéfinir vos choix, "
-                    "veuillez contacter un modérateur."
-                )
-                return
-        else:
+        def get_guild_by_choice_msg(msg_id: int) -> discord.Guild:
+            member_model = database.execute(
+                select(MemberModel).where(MemberModel.choice_msg_id == msg_id)
+            ).scalar_one
+            return self.bot.get_guild(member_model.guild_id)
+
+        guild = GuildWrapper(get_guild_by_choice_msg(payload.message_id))
+        member = MemberWrapper(guild.get_member_by_id(payload.user_id))
+
+        if not member or payload.message_id != member.dm_choice_msg_id:
             return
+        elif member.sub_roles:
+            await member.send(
+                "Vous ne pouvez plus redéfinir vos choix, "
+                "veuillez contacter un modérateur."
+            )
+            return
+        else:  # The member hasn't any sub role yet
+            await self.send_sub_roles_validate(member)
 
-        fieldname = self.FIELDNAMES.get(mod_member.top_role.name)
+        fieldname = self.FIELDNAMES.get(member.top_role.name)
         try:
             emoji_value = self.reacts_pairs[fieldname][payload.emoji.name]
         except KeyError:
-            await mod_member.send("Cette réaction est invalide")
+            await member.send("Cette réaction est invalide")
             return
 
-        role = mod_member.get_role_by_name(emoji_value)
+        role = guild.get_role_by_name(emoji_value)
         if payload.event_type == "REACTION_ADD":
-            mod_member.sub_roles.add(role)
+            member.sub_roles += {role}
         else:
-            mod_member.sub_roles.remove(role)
+            member.sub_roles -= {role}
 
-        if mod_member.validate_state == 0:
-            await self.send_sub_roles_validate(mod_member)
-
-    async def send_sub_roles_validate(self, mod_member):
+    async def send_sub_roles_validate(
+        self, member: Union[discord.Member, MemberWrapper]
+    ):
         """
         Update sub roles list in json file
         """
@@ -135,13 +147,12 @@ class Roles(commands.Cog):
             description="Voulez-vous valider votre sélection?",
         )
         embed.set_footer(text="This message will be disappear in 60 seconds.")
-        message = await mod_member.send(embed=embed)
+        message = await member.send(embed=embed)
         await message.add_reaction("✅")
         await message.add_reaction("❌")
-        mod_member.update_db(validate_state=1)
 
         def check(react, usr):
-            if react.message.id == message.id and mod_member.id == usr.id:
+            if react.message.id == message.id and member.id == usr.id:
                 return str(react.emoji) in ("✅", "❌")
             return False
 
@@ -150,24 +161,21 @@ class Roles(commands.Cog):
                 "reaction_add", timeout=60.0, check=check
             )
         except asyncio.TimeoutError:
-            await mod_member.send("Le délai de confirmaton a expiré")
-            mod_member.update_db(validate_state=0)
+            await member.send("Le délai de confirmaton a expiré")
         else:
             if str(reaction.emoji) == "✅":
-                await mod_member.add_roles(
-                    mod_member.sub_roles, reason="The member has selected this matter"
+                await member.add_roles(
+                    member.sub_roles, reason="The member has selected this matter"
                 )
                 embed = discord.Embed(
-                    title=f"Vous êtes 'fin prêt, cher {mod_member.main_role}!",
+                    title=f"Vous êtes 'fin prêt, cher {member.main_role}!",
                     colour=0xFF22FF,
                     description="Vos choix ont été pris en compte, vous devez avoir à"
                     "présent accès aux salons!",
                 )
-                await mod_member.send(embed=embed)
-                mod_member.update_db(validate_state=2)
+                await member.send(embed=embed)
             else:
-                mod_member.update_db(validate_state=0)
-                await mod_member.send("Vos choix ont été déclinés.")
+                await member.send("Vos choix ont été déclinés.")
         finally:
             await message.delete()
 

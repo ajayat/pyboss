@@ -3,15 +3,19 @@ import datetime
 import json
 
 import discord
+from cogs.schedule.checks import (
+    check_date,
+    check_description,
+    check_hours,
+    check_matter,
+)
+from cogs.utils.checkers import is_guild_owner, is_schedule_channel
 from discord.ext import commands
 from sqlalchemy import delete, insert, select, update
 
 from pyboss import STATIC_DIR
-from pyboss.models import Agenda, Planning, Special
+from pyboss.models import AgendaModel, PlanningModel, SpecialModel
 from pyboss.utils import database
-
-from .utils.checkers import is_guild_owner, is_schedule_channel
-from .utils.schedule import check_date, check_description, check_hours, check_matter
 
 # fmt: off
 MONTHS = (
@@ -26,10 +30,10 @@ async def update_message_ref(fieldname, message: discord.Message):
     Update id of agenda or planning message in database
     """
     ex_message_id = database.execute(
-        select(Special).where(Special.name == fieldname)
+        select(SpecialModel).where(SpecialModel.name == fieldname)
     ).scalar_one
     database.execute(
-        update(Special).values(message_id=message.id, name=fieldname)
+        update(SpecialModel).values(message_id=message.id, name=fieldname)
     )
     try:
         ex_message = await message.channel.fetch_message(ex_message_id)
@@ -91,7 +95,7 @@ class Schedule:
                 f" ou vos réponses n'étaient pas correct. {self.custom_response}"
             )
         else:
-            model = Agenda if self.table == 'agenda' else Planning
+            model = AgendaModel if self.table == 'agenda' else PlanningModel
             database.execute(
                 insert(model).values(**self.answers)
             )
@@ -125,7 +129,7 @@ class Schedule:
                 f"ou vos réponses n'étaient pas correct. {self.custom_response}"
             )
         else:
-            model = Agenda if self.table == 'agenda' else Planning
+            model = AgendaModel if self.table == 'agenda' else PlanningModel
             database.execute(
                 delete(model)
                     .where(model.matter == self.answers["matter"],
@@ -151,7 +155,7 @@ class Schedule:
         """
         Fetch the database to get the list of rows ordered by date
         """
-        model = Agenda if self.table == 'agenda' else Planning
+        model = AgendaModel if self.table == 'agenda' else PlanningModel
         result = database.execute(
             select(model).where(model.class_name == self.table_class,
                                 model.date >= datetime.datetime.now())
@@ -188,7 +192,7 @@ class Schedule:
 
 class PlanningAndAgenda(commands.Cog):
     """
-    A controller class to listen commands related to the agenda or planning
+    A class to listen commands related to the agenda or planning
     """
 
     def __init__(self, bot):

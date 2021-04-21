@@ -21,13 +21,26 @@ version = 1
     formatter = "verbose"
     level = "DEBUG"
     filename = "./logs/bot.log"
-    maxBytes = 50_000  # 50KB
-    backupCount = 4
+    maxBytes = 100_000  # 100KB
+    backupCount = 3
+
+    [handlers.discord_file]
+    class = "logging.handlers.RotatingFileHandler"
+    formatter = "verbose"
+    level = "DEBUG"
+    filename = "./logs/discord.log"
+    maxBytes = 200_000  # 200KB
+    backupCount = 3
 
 [loggers]
     [loggers.root]  # The default logger used for production
     level = "WARNING"
     handlers = ["console"]
+
+    [loggers.discord]  # The logger used by Discord
+    level = "INFO"
+    handlers = ["discord_file"]
+    propagate = 0  # No propagation to the root logger
 
     [loggers.development]
     level = "DEBUG"
