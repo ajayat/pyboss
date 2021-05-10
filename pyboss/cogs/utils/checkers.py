@@ -1,12 +1,11 @@
-import json
+import logging
 
 import discord
 from discord.ext import commands
 
-from pyboss import STATIC_DIR
+from pyboss import CONFIG
 
-with open(STATIC_DIR / "json/channels_tables.json") as f:
-    CHANNELS_TABLES = json.load(f)
+logger = logging.getLogger(__name__)
 
 
 def is_guild_owner():
@@ -16,11 +15,9 @@ def is_guild_owner():
     return commands.check(predicate)
 
 
-def is_schedule_channel():
+def is_schedule_channel(schedule: str):
     def predicate(ctx: commands.Context) -> bool:
-        if not isinstance(ctx, discord.DMChannel):
-            return str(ctx.channel.id) in CHANNELS_TABLES
-        return False
+        return ctx.channel.id in CONFIG["guild"]["channels"][schedule]
 
     return commands.check(predicate)
 

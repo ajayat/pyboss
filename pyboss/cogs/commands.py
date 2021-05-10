@@ -8,7 +8,7 @@ from cogs.utils.checkers import is_guild_owner
 from discord.ext import tasks
 from discord.ext.commands import Cog, command, guild_only
 
-from pyboss.wrappers.guild import MemberWrapper
+from pyboss.wrappers.member import MemberWrapper
 
 logger = logging.getLogger(__name__)
 

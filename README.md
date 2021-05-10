@@ -55,7 +55,7 @@ python3 -m pip install pipenv
 Now, you can create an empty `.venv` directory and running `pipenv`
 It will install packages in the virtual environment (recommended).
 ```sh
-pipenv install -e .
+pipenv install
 ```
 Run the script `pyboss/__main__.py` or run `python3 -m pyboss`
 

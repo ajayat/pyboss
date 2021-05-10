@@ -16,7 +16,7 @@ WORKDIR /PyBoss
 
 # Install project dependencies
 COPY Pipfile* ./
-RUN pipenv install --deploy --system
+RUN pipenv install --system --deploy
 
 # Clean unused packages
 RUN rm -rf /var/lib/apt/lists/* && apt-get autoremove --purge -y -qq

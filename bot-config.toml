@@ -1,2 +1,7 @@
 [bot]
 name = "PyBoss"
+
+[guild]
+    [guild.channels]
+    calendar = [759436012358205450, 759436079883091978]
+    notebook = [754054239008980997, 754054239008980997]

@@ -5,7 +5,7 @@ services:
     image: mysql
     container_name: PyBoss_MySQL
     environment:
-      MYSQL_ALLOW_NO_PASSWORD: yes
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
       MYSQL_DATABASE: PyBoss
     ports:
       - 127.0.0.1:3306:3306
@@ -21,6 +21,6 @@ services:
       - .env
     environment:
       ENVIRONMENT: production
-      DATABASE_URL: mysql+mysqlconnector://root@db:3306/PyBoss"
+      DATABASE_URL: mysql+mysqlconnector://root@mysql:3306/PyBoss
     depends_on:
       - mysql

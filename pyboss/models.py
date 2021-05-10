@@ -22,7 +22,7 @@ class MemberModel(Base):
     name: str = Column(String(50), unique=True)
     top_role: str = Column(String(50), nullable=True)
     sub_roles: str = Column(Text, nullable=True)
-    level: int = Column(Integer, default=0)
+    level: int = Column(Integer, default=1)
     XP: int = Column(Integer, default=0)
     blacklist = Column(DateTime, nullable=True)
     choice_msg_id: int = Column(BigInteger, nullable=True)
@@ -31,12 +31,12 @@ class MemberModel(Base):
         return f"Member(id={self.id}, name={self.name}, role={self.top_role})"
 
 
-class AgendaModel(Base):
-    __tablename__ = "agenda"
+class NotebookModel(Base):
+    __tablename__ = "notebook"
 
     id: int = Column(BigInteger, primary_key=True)
     guild_id: int = Column(BigInteger)
-    class_name: str = Column(String(30))
+    channel: str = Column(String(30))
     subject: str = Column(String(50))
     date = Column(Date)
     description: str = Column(Text, nullable=True)
@@ -47,12 +47,12 @@ class AgendaModel(Base):
         )
 
 
-class PlanningModel(Base):
-    __tablename__ = "planning"
+class CalendarModel(Base):
+    __tablename__ = "calendar"
 
     id: int = Column(BigInteger, primary_key=True)
     guild_id: int = Column(BigInteger)
-    class_name: str = Column(String(30))
+    channel: str = Column(String(30))
     subject: str = Column(String(50))
     date = Column(Date)
     starthour: int = Column(Integer)
@@ -98,17 +98,16 @@ class QuestionModel(Base):
         )
 
 
-class SpecialModel(Base):
-    __tablename__ = "specials"
+class ScheduleRefModel(Base):
+    __tablename__ = "schedule_ref"
 
     message_id: int = Column(BigInteger, primary_key=True)
     guild_id: int = Column(BigInteger)
-    name: str = Column(String(50))
-    date = Column(DateTime, nullable=True)
+    channel_id: int = Column(BigInteger)
 
     def __repr__(self):
-        return "Special(message_id={}, name={}, date={:%d/%m}".format(
-            self.message_id, self.name, self.date
+        return "ScheduleRefModel(message_id={}, guild_id={}, channel_id={}".format(
+            self.message_id, self.guild_id, self.channel_id
         )
 
 
