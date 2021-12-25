@@ -9,6 +9,7 @@ class GuildModel(Base):
 
     id: int = Column(BigInteger, primary_key=True)
     name: str = Column(String(50), unique=True)
+    message_roles_id: int = Column(BigInteger, unique=True)
 
     def __repr__(self):
         return f"Guild(id={self.id}, name={self.name})"
@@ -23,7 +24,7 @@ class MemberModel(Base):
     top_role: str = Column(String(50), nullable=True)
     sub_roles: str = Column(Text, nullable=True)
     level: int = Column(Integer, default=1)
-    XP: int = Column(Integer, default=0)
+    xp: int = Column(Integer, default=0)
     blacklist = Column(DateTime, nullable=True)
     choice_msg_id: int = Column(BigInteger, nullable=True)
 
@@ -36,14 +37,14 @@ class NotebookModel(Base):
 
     id: int = Column(BigInteger, primary_key=True)
     guild_id: int = Column(BigInteger)
-    channel: str = Column(String(30))
+    channel_id: int = Column(BigInteger)
     subject: str = Column(String(50))
     date = Column(Date)
     description: str = Column(Text, nullable=True)
 
     def __repr__(self):
-        return "Agenda(class={} subject={}, date={:%d/%m}".format(
-            self.class_name, self.subject, self.date
+        return "Agenda(channel_id={} subject={}, date={:%d/%m}".format(
+            self.channel_id, self.subject, self.date
         )
 
 
@@ -52,7 +53,7 @@ class CalendarModel(Base):
 
     id: int = Column(BigInteger, primary_key=True)
     guild_id: int = Column(BigInteger)
-    channel: str = Column(String(30))
+    channel_id: int = Column(BigInteger)
     subject: str = Column(String(50))
     date = Column(Date)
     starthour: int = Column(Integer)
@@ -60,8 +61,8 @@ class CalendarModel(Base):
     description: str = Column(Text, nullable=True)
 
     def __repr__(self):
-        return "Planning(class={} subject={}, date={:%d/%m}".format(
-            self.class_name, self.subject, self.date
+        return "Planning(channel_id={} subject={}, date={:%d/%m}".format(
+            self.channel_id, self.subject, self.date
         )
 
 
@@ -69,7 +70,7 @@ class MessageModel(Base):
     __tablename__ = "messages"
 
     id: int = Column(BigInteger, primary_key=True)
-    guild_id: int = Column(BigInteger)
+    guild_id: int = Column(BigInteger, nullable=True)
     author_id: int = Column(BigInteger)  # foreign_key=Member.id
     channel: str = Column(String(50))
     date = Column(DateTime)

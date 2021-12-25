@@ -38,7 +38,7 @@ class MemberWrapper:
         try:
             return database.execute(
                 select(MemberModel).where(MemberModel.id == self.member.id)
-            ).scalar_one
+            ).scalar_one()
         except sqlalchemy.exc.NoResultFound:
             return None
 

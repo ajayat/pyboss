@@ -7,11 +7,11 @@ import string
 from operator import itemgetter
 
 import discord
-from cogs.utils.checkers import is_quiz_channel
 from discord.ext.commands import Cog, command, guild_only
 from emoji import emojize
 from sqlalchemy import func, insert, select
 
+from pyboss.cogs.utils.checkers import is_quiz_channel
 from pyboss.models import QuestionModel
 from pyboss.utils import database
 from pyboss.wrappers.guild import GuildWrapper
@@ -124,20 +124,7 @@ class Quiz(Cog):
         self.actives = {}
         self.scores = {}
 
-    @Cog.listener()
-    @guild_only()
-    async def on_message(self, msg: discord.Message):
-        """Obtain a few XP per message"""
-        if msg.author.id != self.bot.user.id and not msg.content.startswith("!"):
-            try:
-                mod_member = MemberWrapper(msg.author)
-                mod_member.XP += 25
-            except AttributeError:
-                pass
-
     @Cog.listener("on_reaction_add")
-    @guild_only()
-    @is_quiz_channel()
     async def _reaction_on_question(self, reaction, player: discord.User):
         """
         Remove ex reactions of the user in a quiz question

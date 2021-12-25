@@ -7,15 +7,15 @@ import re
 import discord
 from discord.ext import commands
 from discord.ext.commands import guild_only
-from sqlalchemy import insert, select
+from sqlalchemy import insert, select, update
 
-from pyboss import STATIC_DIR
-from pyboss.models import CalendarModel, NotebookModel
+from pyboss import CONFIG, STATIC_DIR
+from pyboss.models import CalendarModel, NotebookModel, ScheduleRefModel
 from pyboss.utils import database
 from pyboss.wrappers.member import MemberWrapper
 
 from .utils.checkers import is_guild_owner, is_schedule_channel
-from .utils.functions import send_embed, update_message_ref
+from .utils.functions import send_embed
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +28,9 @@ REGEX_DATE = re.compile(r"^(?P<day>\d{1,2})[-\s/:]*(?P<month>\d{1,2})$")
 MONTHS = (
     "janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août",
     "septembre", "octobre", "novembre", "décembre"
-)  # fmt: on
-DAYS = ("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi")
+)
+DAYS = ("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche")
+# fmt: on
 
 
 class Schedule:
@@ -71,21 +72,41 @@ class Schedule:
     def get_data(self, model):
         return database.execute(
             select(model).where(
-                model.channel == self.channel, model.date >= datetime.datetime.now()
+                model.channel_id == self.channel.id,
+                model.date >= datetime.datetime.now(),
             )
         )
+
+    @staticmethod
+    async def update_message_ref(message: discord.Message):
+        """
+        Update id of agenda or planning message in database
+        """
+        ex_message = database.execute(
+            select(ScheduleRefModel).where(
+                ScheduleRefModel.channel_id == message.channel.id,
+            )
+        ).scalar_one
+        database.execute(
+            update(ScheduleRefModel)
+            .where(ScheduleRefModel.channel_id == message.channel.id)
+            .values(message_id=message.id)
+        )
+        try:
+            ex_message = await message.channel.fetch_message(ex_message.id)
+        except (discord.NotFound, discord.HTTPException):
+            return
+        await ex_message.delete()
 
     async def remove_procedure(self, update_fct=None):
         try:
             await self.send_question(
                 "Quelle matière voulez-vous supprimer?",
                 timeout=60,
-                check=self.is_matter_valid()
+                check=self.is_matter_valid(),
             )
             await self.send_question(
-                "De quel jour? (Ex: JJ/MM)",
-                timeout=60,
-                check=self.is_date_valid()
+                "De quel jour? (Ex: JJ/MM)", timeout=60, check=self.is_date_valid()
             )
         except asyncio.TimeoutError:
             await self.channel.send(
@@ -113,7 +134,9 @@ class Schedule:
                 member.place_in_blacklist()
                 self.matter = msg.content.title()
             else:
-                seconds = (member.blacklist_date - datetime.datetime.now()).total_seconds()
+                seconds = (
+                    member.blacklist_date - datetime.datetime.now()
+                ).total_seconds()
                 hours, minutes = seconds // 3600, (seconds % 3600) // 60
                 await msg.channel.send(
                     f"Vous n'êtes pas autorisé à ajouter un évènement spécial "
@@ -125,7 +148,6 @@ class Schedule:
         return commands.check(predicate)
 
     def is_date_valid(self):
-
         @self.is_same_source()
         async def predicate(msg: discord.Message):
             """
@@ -134,7 +156,9 @@ class Schedule:
             match = REGEX_DATE.match(msg.content)
             if not match:
                 await msg.channel.send("Votre format de date est invalide.")
-                logger.info(f"The user {msg.author.name} hasn't wrote correctly the date")
+                logger.info(
+                    f"The user {msg.author.name} hasn't wrote correctly the date"
+                )
                 return False
 
             day, month = map(int, match.groups())
@@ -151,7 +175,7 @@ class Schedule:
                     self.date = str(date_user)
                     return True
                 await msg.channel.send(
-                    f"{day}/{month} est antérieur à la date d'aujourd'hui"
+                    f"{day}/{month} est antérieur à la date actuelle"
                 )
                 return False
             await msg.channel.send("On ne travaille pas le week end!")
@@ -160,7 +184,6 @@ class Schedule:
         return commands.check(predicate)
 
     def is_hours_valid(self):
-
         @self.is_same_source()
         async def predicate(msg: discord.Message):
             try:
@@ -177,7 +200,6 @@ class Schedule:
         return commands.check(predicate)
 
     def is_description_valid(self):
-
         @self.is_same_source()
         async def predicate(msg: discord.Message):
             if msg.content.strip().upper() != "NON":
@@ -188,13 +210,8 @@ class Schedule:
 
 
 class Calendar(Schedule):
-
     def __init__(self, ctx):
         super().__init__(ctx)
-        self.bot = ctx.bot
-        self.guild = ctx.guild
-        self.author = ctx.author
-        self.channel = ctx.channel
         self.subject = None
         self.date = None
         self.starthour, self.endhour = None, None
@@ -204,10 +221,10 @@ class Calendar(Schedule):
         """
         Send the rules for planning or agenda channel
         """
-        with open(STATIC_DIR / "text/planning_rules.md") as calendar:
+        with open(STATIC_DIR / "text/calendar_rules.md") as calendar:
             content = calendar.read()
             title = "Fonctionnement du planning"
-        await send_embed(self.channel, title, content)
+        await send_embed(self.bot, self.channel, title, content)
 
     async def new(self):
         try:
@@ -215,7 +232,8 @@ class Calendar(Schedule):
                 "Quelle matière voulez-vous ajouter ?", self.is_matter_valid()
             )
             await self.send_question(
-                "A quelle date le cours aura lieu ? (Ex : JJ/MM)", self.is_date_valid(),
+                "A quelle date le cours aura lieu ? (Ex : JJ/MM)",
+                self.is_date_valid(),
             )
             await self.send_question(
                 "A quelle heure ? (Ex: 10h; 10h/12h…)", self.is_hours_valid()
@@ -239,7 +257,7 @@ class Calendar(Schedule):
                     description=self.description,
                     date=self.date,
                     starthour=self.starthour,
-                    endhour=self.endhour
+                    endhour=self.endhour,
                 )
             )
             await self.update()
@@ -252,7 +270,7 @@ class Calendar(Schedule):
         """
         next_date, message = None, ""
         for row in self.get_data(CalendarModel):
-            date = row["date"]
+            date = row[0].date
 
             if date != next_date:
                 next_date = date
@@ -261,41 +279,36 @@ class Calendar(Schedule):
                 message += f"\n__Pour le **{day}** {date:%d} {month}:__\n"
 
             description = (
-                f"*({row['description']})*" if bool(row["description"]) else ""
+                f"*({row[0].description})*" if bool(row[0].description) else ""
             )
             message += (
-                f"- \t {row['matter']}: "
-                f"**{row['starthour']}**-**{row['endhour']}** {description}\n"
+                f"- \t {row[0].matter}: "
+                f"**{row[0].starthour}**-**{row[0].endhour}** {description}\n"
             )
 
         embed = discord.Embed(
-            color=0x22CCFF, title="Cours à venir:", description=message
+            colour=0x22CCFF, title="Cours à venir:", description=message
         )
-        embed.set_thumbnail(url=STATIC_DIR / "img/book.jpg")
+        embed.set_thumbnail(url=CONFIG["images"]["calendar"]["url"])
         new_msg = await self.channel.send(embed=embed)
-        await update_message_ref(new_msg)
+        await self.update_message_ref(new_msg)
 
 
 class Notebook(Schedule):
     def __init__(self, ctx):
         super().__init__(ctx)
-        self.bot = ctx.bot
-        self.guild = ctx.guild
-        self.author = ctx.author
-        self.channel = ctx.channel
         self.subject = None
         self.date = None
         self.description = None
 
-    @staticmethod
-    async def rules(ctx):
+    async def rules(self):
         """
         Send the rules for planning or agenda channel
         """
-        with open(STATIC_DIR / "text/agenda_rules.md") as notebook:
+        with open(STATIC_DIR / "text/notebook_rules.md") as notebook:
             content = notebook.read()
             title = "Fonctionnement de l'agenda"
-        await send_embed(ctx.channel, title, content)
+        await send_embed(self.bot, self.channel, title, content)
 
     async def new(self):
         try:
@@ -335,21 +348,20 @@ class Notebook(Schedule):
         """
         next_date, message = None, ""
         for row in self.get_data(NotebookModel):
-            date = row["date"]
+            date = row[0].date
             if date != next_date:
                 next_date = date
                 day = DAYS[date.weekday()]
                 month = MONTHS[int(f"{date:%m}") - 1]
                 message += f"\n__Pour le **{day}** {date:%d} {month}:__\n"
-
-            message += f"\n**{row['matter']}**: {row['description']}\n"
+            message += f"\n**{row[0].subject}**: {row[0].description}\n"
 
         embed = discord.Embed(
-            color=0x22CCFF, title="Devoirs à faire:", description=message
+            colour=0x22CCFF, title="Devoirs à faire:", description=message
         )
-        embed.set_thumbnail(url=STATIC_DIR / "img/book.jpg")
+        embed.set_thumbnail(url=CONFIG["images"]["notebook"]["url"])
         new_msg = await self.channel.send(embed=embed)
-        await update_message_ref(new_msg)
+        await self.update_message_ref(new_msg)
 
 
 class ScheduleCog(commands.Cog):
@@ -358,9 +370,9 @@ class ScheduleCog(commands.Cog):
 
     @staticmethod
     def get_schedule(ctx):
-        if is_schedule_channel("notebook"):
+        if is_schedule_channel(ctx, "notebook"):
             return Notebook(ctx)
-        if is_schedule_channel("calendar"):
+        if is_schedule_channel(ctx, "calendar"):
             return Calendar(ctx)
 
     @commands.command(name="new")

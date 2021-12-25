@@ -7,7 +7,7 @@ from pyboss import cogs
 
 def find_available_cogs() -> Iterator[Any]:
     """
-    Yields all available cogs from the bot.cogs package
+    Yields all available cogs from the cogs sub folder
     """
 
     def on_error(name: str) -> NoReturn:
@@ -19,6 +19,6 @@ def find_available_cogs() -> Iterator[Any]:
         if module.ispkg or unqualified.startswith("_"):
             continue
         imported = import_module(module.name)
-        # Checks if it have a setup function (a callable)
+        # Checks if it has a setup function (callable)
         if callable(getattr(imported, "setup", None)):
             yield imported

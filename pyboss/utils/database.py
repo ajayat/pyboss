@@ -13,7 +13,7 @@ if __database_url := os.getenv("DATABASE_URL"):
     # other errors are due to an incorrect url syntax
     engine = sqlalchemy.create_engine(__database_url)
 else:
-    # At this point, not url was specified for a remote database, let's create one
+    # At this point, no url was specified for a remote database, let's create one
     logger.warning(
         "You have not specified an DATABASE_URL environment variable, "
         "a local SQLLite database will be created. "
@@ -48,18 +48,19 @@ def execute(stmt):
     """
     Creates a Session to execute the given statement.
     """
-    with Session(engine) as session:
+    with Session(engine, autocommit=True) as session:
         try:
-            result = session.execute(stmt)
+            # https://docs.sqlalchemy.org/en/14/errors.html#error-lkrp
+            result = session.execute(stmt, execution_options={"prebuffer_rows": True})
         except sqlalchemy.exc.DBAPIError as err:
             # https://docs.sqlalchemy.org/en/13/core/exceptions.html
             logger.error(
                 f"The following statement execution has failed: {err.statement}"
-                f"\n {err.statement}"
+                f"\n {err.statement} \n"
                 f"Full error stack: {err}"
             )
         else:
-            return result
+            return result.fetchall()
     return None
 
 

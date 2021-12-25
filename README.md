@@ -15,8 +15,8 @@
 ![GitHub last commit (branch)](https://img.shields.io/github/last-commit/Adridri24/PyBoss) &nbsp;
 [![DeepSource](https://deepsource.io/gh/Adridri24/PyBoss.svg/?label=active+issues)](https://deepsource.io/gh/Adridri24/PyBoss/?ref=repository-badge)
 
-
 ## Overview
+
 *PyBoss* is a Discord bot that facilitates distance learning on Discord.
 It allows you to manage the agenda, the planning by providing simple commands for anyone to use.
 
@@ -26,6 +26,7 @@ Once configured, it can automatically manage roles. The users are invited to cho
 with interactive reaction system.
 
 ## Softwares
+
 **Python** <br>
 It's required to have python 3.8 or more  installed on your system.
 [Download Python](https://www.python.org/downloads/)
@@ -34,9 +35,10 @@ It's required to have python 3.8 or more  installed on your system.
 You can also use Docker to deploy the environment in one command.
 [Get started with Docker](https://www.docker.com/get-started)
 
-
 ## Installation
+
 First set variables in .env file:
+
 ```ini
 DISCORD_TOKEN = <discord_bot_token>
 # Can be development (More logs)
@@ -48,33 +50,24 @@ API_DEVELOPER_KEY = <youtube_api_developer_key>
 ```
 
 - ### Using Pipenv
+
 Install `pipenv` dependencies:
+
 ```sh
 python3 -m pip install pipenv
 ```
+
 Now, you can create an empty `.venv` directory and running `pipenv`
 It will install packages in the virtual environment (recommended).
+
 ```sh
 pipenv install
 ```
+
 Run the script `pyboss/__main__.py` or run `python3 -m pyboss`
 
 - ### Using Docker
+
 ```sh
 docker-compose up --build
-```
-
-- ### Using Setup
-*PyBoss* can be used as a package. It's strongly recommended using a virtual environment,
-you can create one using `python3 -m venv .venv`.
-
-Now, install the dependencies:
-```sh
-python3 -m pip install .
-```
-Now, you can run the bot from a script:
-```py
-from pyboss import bot
-
-bot.run()  # or bot.run(token)
 ```

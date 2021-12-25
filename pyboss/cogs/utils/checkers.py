@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 import discord
@@ -15,13 +17,6 @@ def is_guild_owner():
     return commands.check(predicate)
 
 
-def is_schedule_channel(schedule: str):
-    def predicate(ctx: commands.Context) -> bool:
-        return ctx.channel.id in CONFIG["guild"]["channels"][schedule]
-
-    return commands.check(predicate)
-
-
 def is_quiz_channel():
     def predicate(ctx: commands.Context) -> bool:
         if not isinstance(ctx.channel, discord.DMChannel):
@@ -31,10 +26,11 @@ def is_quiz_channel():
     return commands.check(predicate)
 
 
-def is_suggestion_channel():
-    def predicate(ctx: commands.Context) -> bool:
-        if not isinstance(ctx.channel, discord.DMChannel):
-            return "suggestion" in ctx.channel.name
-        return False
+def is_schedule_channel(ctx: commands.Context, schedule: str) -> bool:
+    return ctx.channel.id in CONFIG["guild"]["channels"][schedule]
 
-    return commands.check(predicate)
+
+def is_suggestion_channel(message: discord.Message | commands.Context) -> bool:
+    if not isinstance(message.channel, discord.DMChannel):
+        return "suggestion" in message.channel.name
+    return False

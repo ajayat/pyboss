@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import discord
-from discord.ext.commands import Cog, command, guild_only, is_owner
+from discord.ext.commands import Cog, check, command, is_owner
 from sqlalchemy import insert
 
 from pyboss import STATIC_DIR
@@ -21,7 +21,7 @@ class Suggestion(Cog):
 
     @command(name="suggestions_rules", hidden=True)
     @is_owner()
-    @is_suggestion_channel()
+    @check(is_suggestion_channel)
     async def send_suggestions_rules(self, ctx):
         """
         Send the rules for suggestion channel
@@ -39,25 +39,27 @@ class Suggestion(Cog):
         await ctx.send(embed=embed)
 
     @Cog.listener("on_message")
-    @is_suggestion_channel()
-    async def make_suggestion(self, ctx):
-        await ctx.add_reaction("✅")
-        await ctx.add_reaction("❌")
+    async def make_suggestion(self, message):
+        if is_suggestion_channel(message):
+            await message.add_reaction("✅")
+            await message.add_reaction("❌")
 
     @Cog.listener("on_raw_reaction_add")
-    @guild_only()
-    @is_suggestion_channel()
-    @is_owner()
     async def decisive_reaction(self, payload):
         """
         Send result to all users when the owner add a reaction
         """
-        if str(payload.emoji) not in ("✅", "❌"):
-            return
-        accepted: bool = str(payload.emoji) == "✅"
-
         channel = self.bot.get_channel(payload.channel_id)
         message = await channel.fetch_message(payload.message_id)
+
+        if (
+            str(payload.emoji) not in ("✅", "❌")
+            or not is_suggestion_channel(message)
+            or not self.bot.is_owner(message.author)
+        ):
+            return
+
+        accepted: bool = str(payload.emoji) == "✅"
         if accepted:
             stmt = insert(SuggestionModel).values(
                 author=message.author.name, description=message.content

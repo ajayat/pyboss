@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Generator
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -7,9 +8,9 @@ from googleapiclient.errors import HttpError
 logger = logging.getLogger(__name__)
 
 
-def search(query: str, n=1) -> dict:
+def search(query: str, n=1) -> Generator[dict, None, None]:
     """
-    Search video on youtube matching the query
+    Search video on YouTube matching the query
     """
     try:
         youtube = build("youtube", "v3", developerKey=os.getenv("API_DEVELOPER_KEY"))

@@ -3,11 +3,11 @@ from itertools import cycle
 from typing import Optional
 
 import discord
-from cogs.utils import youtube
-from cogs.utils.checkers import is_guild_owner
 from discord.ext import tasks
 from discord.ext.commands import Cog, command, guild_only
 
+from pyboss.cogs.utils import youtube
+from pyboss.cogs.utils.checkers import is_guild_owner
 from pyboss.wrappers.member import MemberWrapper
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ class Commands(Cog):
 
     @command()
     @guild_only()
-    async def send(self, ctx, message: str):
+    async def send(self, ctx, *, message: str):
         """
         Envoie un message dans le salon actuel
         """

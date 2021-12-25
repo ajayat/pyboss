@@ -7,7 +7,7 @@ from discord.ext import commands
 from pyboss.utils import database, resolver
 
 # Create a logger for this file, __name__ will take the package name if this file
-# will does not run as a scrip
+# will do not run as a scrip
 logger = logging.getLogger(__name__)
 TOKEN = os.getenv("DISCORD_TOKEN")
 

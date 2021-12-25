@@ -3,7 +3,10 @@ from datetime import datetime
 
 import discord
 from discord.ext.commands import Cog
+from sqlalchemy import insert
 
+from pyboss.models import GuildModel
+from pyboss.utils import database
 from pyboss.wrappers.member import MemberWrapper
 from pyboss.wrappers.message import MessageWrapper
 
@@ -20,6 +23,13 @@ class EventsCog(Cog):
         When client is connected
         """
         print(f"\n{' READY ':>^80}\n")
+
+    @Cog.listener()
+    async def on_guild_join(self, guild):
+        """
+        When client is invited to a guild
+        """
+        database.execute(insert(GuildModel).values(id=guild.id, name=guild.name))
 
     @Cog.listener()
     async def on_member_join(self, member):
@@ -54,12 +64,18 @@ class EventsCog(Cog):
         await publish_channel.send(embed=embed)
 
     @Cog.listener()
-    async def on_message(self, ctx):
+    async def on_message(self, msg):
         """
-        Log message in database for users
+        Log message in database and obtain few XP
         """
-        if ctx.author.id != self.bot.user.id:
-            MessageWrapper(ctx.message).insert()
+        if not msg.author.bot:
+            MessageWrapper(msg).insert()
+        if isinstance(msg.channel, discord.TextChannel):
+            try:
+                mod_member = MemberWrapper(msg.author)
+                mod_member.XP += 25
+            except AttributeError:
+                pass
 
     @Cog.listener()
     async def on_member_update(self, before, after):

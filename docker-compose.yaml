@@ -1,26 +1,27 @@
 version: "3.9"
 
 services:
-  mysql:
-    image: mysql
-    container_name: PyBoss_MySQL
+  postgres:
+    image: postgres
+    container_name: PyBoss_PostgreSQL
     environment:
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-      MYSQL_DATABASE: PyBoss
+      - POSTGRES_DB=PyBoss
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
     ports:
-      - 127.0.0.1:3306:3306
+      - "2345:5432"
+
   bot:
     container_name: PyBoss_Bot
     build:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - ./pyboss/logs:/PyBoss/pyboss/logs
       - .:/PyBoss
     env_file:
       - .env
     environment:
       ENVIRONMENT: production
-      DATABASE_URL: mysql+mysqlconnector://root@mysql:3306/PyBoss
+      DATABASE_URL: postgresql+psycopg2://root:root@postgres:5432/PyBoss
     depends_on:
-      - mysql
+      - postgres

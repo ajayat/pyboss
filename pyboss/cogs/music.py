@@ -24,7 +24,7 @@ class Video:
 
 class Music(Cog):
     """
-    Offers an interface with typicals commands to play music in voice channel
+    Offers an interface with typical commands to play music in voice channel
     """
 
     def __init__(self, bot):
@@ -63,7 +63,7 @@ class Music(Cog):
 
     def play_song(self, voice_client, queue, song):
         """
-        Couroutine to play a song
+        Coroutine to play a song
         """
         source = discord.PCMVolumeTransformer(
             discord.FFmpegPCMAudio(

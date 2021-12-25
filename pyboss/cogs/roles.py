@@ -1,15 +1,16 @@
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
 from datetime import datetime
-from typing import Union
 
 import discord
-from discord.ext.commands import Cog, command, dm_only, guild_only, is_owner
+from discord.ext.commands import Cog, command, guild_only, is_owner
 from sqlalchemy import select, update
 
 from pyboss import STATIC_DIR
-from pyboss.models import MemberModel, SpecialModel
+from pyboss.models import GuildModel, MemberModel
 from pyboss.utils import database
 from pyboss.wrappers.guild import GuildWrapper
 from pyboss.wrappers.member import MemberWrapper
@@ -60,10 +61,11 @@ class Roles(Cog):
         """
         await ctx.message.delete()
         message = await self.send_choice(ctx, "guild_choice")
+
         database.execute(
-            update(SpecialModel)
-            .where(SpecialModel.name == "guild_choice")
-            .values(message_id=message.id)
+            update(GuildModel)
+            .where(GuildModel.id == ctx.guild.id)
+            .values(message_roles_id=message.id)
         )
 
     @Cog.listener("on_raw_reaction_add")
@@ -72,11 +74,11 @@ class Roles(Cog):
         """
         Update top role or send a DM message to the user to choice his sub roles
         """
-        choice_msg = database.execute(
-            select(SpecialModel).where(SpecialModel.name == "guild_choice")
-        ).scalar_one
-        if choice_msg.message_id != payload.message_id:
-            return  # Exit if it's not for the guild_choice message
+        guild_model = database.execute(
+            select(GuildModel).where(GuildModel.id == payload.guild_id)
+        ).scalar_one_or_none()
+        if guild_model and guild_model.message_roles_id != payload.message_id:
+            return  # Exit if it's not for the message to choice roles
 
         member = MemberWrapper(payload.member)
         try:
@@ -96,16 +98,17 @@ class Roles(Cog):
 
     @Cog.listener("on_raw_reaction_add")
     @Cog.listener("on_raw_reaction_remove")
-    @dm_only()
     async def reaction_sub_role_add(self, payload):
         """
         React when a member choice his roles in DM channel
         """
+        if hasattr(payload, "guild_id"):
+            return
 
         def get_guild_by_choice_msg(msg_id: int) -> discord.Guild:
             member_model = database.execute(
                 select(MemberModel).where(MemberModel.choice_msg_id == msg_id)
-            ).scalar_one
+            ).scalar_one()
             return self.bot.get_guild(member_model.guild_id)
 
         guild = GuildWrapper(get_guild_by_choice_msg(payload.message_id))
@@ -135,9 +138,7 @@ class Roles(Cog):
         else:
             member.sub_roles -= {role}
 
-    async def send_sub_roles_validate(
-        self, member: Union[discord.Member, MemberWrapper]
-    ):
+    async def send_sub_roles_validate(self, member: discord.Member | MemberWrapper):
         """
         Update sub roles list in json file
         """
