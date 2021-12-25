@@ -73,7 +73,7 @@ class EventsCog(Cog):
         if isinstance(msg.channel, discord.TextChannel):
             try:
                 mod_member = MemberWrapper(msg.author)
-                mod_member.XP += 25
+                mod_member.xp += 25
             except AttributeError:
                 pass
 

@@ -94,14 +94,14 @@ class Question:
             member = self.guild.get_member(id)
             score = win_score(nb_players, i, member.level)
             description += f"{i}. {member.name}: +{score}XP \n"
-            member.XP += score
+            member.xp += score
 
         description += "\n**Perdants**: \n" if self.losers else ""
         for id in self.losers:
             member = self.guild.get_member(id)
             score = lose_score(nb_players)
             description += f":small_red_triangle_down: {member.name}: -{score}XP \n"
-            member.XP -= score
+            member.xp -= score
 
         embed = discord.Embed(
             title=":hourglass: Résultats de la question:",
@@ -255,7 +255,7 @@ class Quiz(Cog):
                 )
             )
             mod_member = MemberWrapper(ctx.author)
-            mod_member.XP += 500
+            mod_member.xp += 500
             embed = discord.Embed(
                 title="Merci!",
                 colour=0x5A546C,

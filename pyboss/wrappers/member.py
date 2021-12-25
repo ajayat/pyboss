@@ -22,7 +22,7 @@ class MemberWrapper:
 
     def __init__(self, member: discord.Member):
         """
-        Represente a member with additional attributes
+        Représente a member with additional attributes
         """
         self.member = member
         self.guild = GuildWrapper(member.guild)
@@ -63,18 +63,16 @@ class MemberWrapper:
         return self.__model is not None
 
     def place_in_blacklist(self, *, days=1, minutes=0):
-        blacklist = datetime.now() + timedelta(days=days, minutes=minutes)
-        self.update(blacklist=blacklist)
-        Timer(
-            (self._blacklist - datetime.now()).seconds, self._remove_from_blacklist
-        ).start()
+        delta = timedelta(days=days, minutes=minutes)
+        self.update(blacklist=datetime.now() + delta)
+        Timer(delta.total_seconds(), self._remove_from_blacklist).start()
 
     def _remove_from_blacklist(self):
-        self.update(blacklist="Null")
+        self.update(blacklist=None)
 
     @property
     def blacklist_date(self) -> Optional[datetime]:
-        if self.__model.blacklist < datetime.now():
+        if self.__model.blacklist and self.__model.blacklist < datetime.now():
             self._remove_from_blacklist()
             return None
         return self.__model.blacklist
@@ -103,14 +101,14 @@ class MemberWrapper:
         return self.__model.level
 
     @property
-    def XP(self):
-        return self.__model.XP
+    def xp(self):
+        return self.__model.xp
 
-    @XP.setter
-    def XP(self, value):
+    @xp.setter
+    def xp(self, value):
         value = max(value, 0)
         level = int(value ** (1 / 2) / 50) + 1
-        self.update(XP=value, level=level)
+        self.update(xp=value, level=level)
 
     @property
     def dm_choice_msg_id(self) -> int:

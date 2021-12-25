@@ -55,12 +55,12 @@ def execute(stmt):
         except sqlalchemy.exc.DBAPIError as err:
             # https://docs.sqlalchemy.org/en/13/core/exceptions.html
             logger.error(
-                f"The following statement execution has failed: {err.statement}"
-                f"\n {err.statement} \n"
+                f"The following statement execution has failed: \n"
+                f"{err.statement} \n"
                 f"Full error stack: {err}"
             )
         else:
-            return result.fetchall()
+            return result
     return None
 
 

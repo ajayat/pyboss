@@ -78,7 +78,7 @@ class Commands(Cog):
             embed.set_thumbnail(url=member.avatar_url)
             embed.add_field(name="Name", value=member.mention, inline=True)
             embed.add_field(name="Level", value=member.level, inline=True)
-            embed.add_field(name="XP", value=member.XP, inline=True)
+            embed.add_field(name="XP", value=member.xp, inline=True)
             embed.add_field(
                 name="Membre depuis...",
                 value=f"{member.joined_at:%d/%m/%Y}",
