@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 
 import discord
-from discord.ext.commands import Cog, command, guild_only, is_owner
+from discord.ext.commands import Cog, command, is_owner
 from sqlalchemy import select, update
 
 from pyboss import STATIC_DIR
@@ -69,11 +69,12 @@ class Roles(Cog):
         )
 
     @Cog.listener("on_raw_reaction_add")
-    @guild_only()
     async def reaction_guild_choice(self, payload):
         """
         Update top role or send a DM message to the user to choice his sub roles
         """
+        if not hasattr(payload, "guild_id"):
+            return  # guild only
         guild_model = database.execute(
             select(GuildModel).where(GuildModel.id == payload.guild_id)
         ).scalar_one_or_none()
@@ -103,7 +104,7 @@ class Roles(Cog):
         React when a member choice his roles in DM channel
         """
         if hasattr(payload, "guild_id"):
-            return
+            return  # dm only
 
         def get_guild_by_choice_msg(msg_id: int) -> discord.Guild:
             member_model = database.execute(
@@ -162,7 +163,7 @@ class Roles(Cog):
                 "reaction_add", timeout=60.0, check=check
             )
         except asyncio.TimeoutError:
-            await member.send("Le délai de confirmaton a expiré")
+            await member.send("Le délai de confirmation a expiré")
         else:
             if str(reaction.emoji) == "✅":
                 await member.add_roles(

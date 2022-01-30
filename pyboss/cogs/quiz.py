@@ -42,7 +42,7 @@ class Question:
         self.bot = bot
         self.channel = channel
         self.guild = GuildWrapper(channel.guild)
-        self.winners = []  # We needs a list to preserve insertion order
+        self.winners = []  # We need a list to preserve insertion order
         self.losers = []
         self.message = None
         # Get attributes from the question fetched
@@ -78,7 +78,7 @@ class Question:
 
     async def send_rank(self) -> tuple[list, list]:
         """
-        Check reactions, send a rank info and ajust XP of the members
+        Check reactions, send a rank info and adjust XP of the members
         """
 
         def win_score(n, coef, level):
@@ -116,7 +116,7 @@ class Question:
 
 class Quiz(Cog):
     """
-    Quiz can permit to obtain XP and level up...
+    Quiz can permit obtaining XP and level up...
     """
 
     def __init__(self, bot):
@@ -154,7 +154,7 @@ class Quiz(Cog):
     @is_quiz_channel()
     async def questions(self, ctx, nb_questions: int = 1):
         """
-        Génère n questions ou une seuel si aucun argument n'est donné.
+        Génère n questions ou une seule si aucun argument n'est donné.
         """
 
         def fetch_questions(number: int = 1):
@@ -231,7 +231,7 @@ class Quiz(Cog):
             )
         except asyncio.TimeoutError:
             await ctx.author.send(
-                "Vous avez mis trop de temps à ajouter la question, veuillez réesayer"
+                "Vous avez mis trop de temps à ajouter la question, veuillez réessayer"
             )
         else:
             propositions = propositions.split("/")

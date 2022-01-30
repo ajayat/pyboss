@@ -41,8 +41,11 @@ class Suggestion(Cog):
     @Cog.listener("on_message")
     async def make_suggestion(self, message):
         if is_suggestion_channel(message):
-            await message.add_reaction("✅")
-            await message.add_reaction("❌")
+            try:
+                await message.add_reaction("✅")
+                await message.add_reaction("❌")
+            except discord.errors.NotFound:
+                pass
 
     @Cog.listener("on_raw_reaction_add")
     async def decisive_reaction(self, payload):
@@ -50,27 +53,28 @@ class Suggestion(Cog):
         Send result to all users when the owner add a reaction
         """
         channel = self.bot.get_channel(payload.channel_id)
-        message = await channel.fetch_message(payload.message_id)
-
+        try:
+            message = await channel.fetch_message(payload.message_id)
+        except discord.errors.NotFound:
+            return
         if (
             str(payload.emoji) not in ("✅", "❌")
             or not is_suggestion_channel(message)
-            or not self.bot.is_owner(message.author)
+            or not await self.bot.is_owner(payload.member)
         ):
             return
 
-        accepted: bool = str(payload.emoji) == "✅"
-        if accepted:
+        if accepted := str(payload.emoji) == "✅":
             stmt = insert(SuggestionModel).values(
                 author=message.author.name, description=message.content
             )
             database.execute(stmt)
         for reaction in message.reactions:
-            if str(reaction.emoji) == "✅":
-                async for user in reaction.users():
+            if str(reaction.emoji) not in ("✅", "❌"):
+                continue
+            async for user in reaction.users():
+                if user.id != self.bot.user.id:
                     await self.send_dm_suggestion_state(user, accepted, message)
-        await self.send_dm_suggestion_state(message.author, accepted, message)
-
         await message.delete()
 
     async def send_dm_suggestion_state(self, user, accepted: bool, suggestion):
@@ -83,29 +87,25 @@ class Suggestion(Cog):
             embed = discord.Embed(
                 colour=0xFF22BB,
                 title="Suggestion acceptée!",
-                description=(
-                    f"**Félicitations!** "
-                    f"La suggestion de **{suggestion.author.name}** pour laquelle "
-                    f"vous avez voté a été acceptée:\n> {citation} \n\n"
-                    "__Note__: \n Il faut parfois attendre plusieurs jours "
-                    "avant qu'elle soit effective",
-                ),
+                description=f"**Félicitations!** La suggestion de **{suggestion.author.name}** "
+                f"pour laquelle vous avez voté a été acceptée:\n> {citation} \n\n"
+                "__Note__: \n Il faut parfois attendre plusieurs jours "
+                "avant qu'elle soit effective",
             )
         else:
             embed = discord.Embed(
                 colour=0xFF22BB,
                 title="Suggestion refusée!",
-                description=(
-                    f"**Mauvaise nouvelle...** "
-                    f"la suggestion de **{suggestion.author.name}** pour laquelle "
-                    f"vous avez voté a été malheureusement refusée:\n> {citation}\n\n"
-                ),
+                description=f"**Mauvaise nouvelle...** la suggestion de "
+                f"**{suggestion.author.name}** pour laquelle vous avez voté "
+                f"a été malheureusement refusée:\n> {citation}\n\n",
             )
-        embed.set_thumbnail(url=STATIC_DIR / "img/alert.png")
+        file = discord.File(STATIC_DIR / "img/alert.png")
+        embed.set_thumbnail(url="attachment://alert.png")
         embed.set_footer(
-            text=f"{self.bot.user.name} | This message was sent automatically"
+            text=f"{self.bot.user.name} | Ce message a été envoyé automatiquement"
         )
-        await user.send(embed=embed)
+        await user.send(file=file, embed=embed)
 
 
 def setup(bot):

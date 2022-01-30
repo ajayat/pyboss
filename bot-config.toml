@@ -5,10 +5,3 @@ name = "PyBoss"
     [guild.channels]
     calendar = [922624099300294670, 922624099300294671]
     notebook = [922624099300294668, 922624099300294669]
-
-[images]
-    [images.calendar]
-    url = "https://banner2.cleanpng.com/20191116/fqu/transparent-plan-icon-creative-process-icon-5dcfe97387c204.8814237415739068035561.jpg"
-
-    [images.notebook]
-    url = "https://i.pinimg.com/originals/48/32/62/483262d8d8eff3ebf7d5fed917e25700.png"

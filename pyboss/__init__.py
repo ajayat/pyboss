@@ -26,10 +26,10 @@ def setup():
     log_config = toml.load(_BOT_DIR.parent / "log-config.toml")
 
     if os.getenv("ENVIRONMENT") == "development":
-        # All logger are herited from the root logger
+        # All logger are inherited from the root logger
         log_config["root"] = log_config["loggers"]["development"]
 
-    # Creates logs in current directory, does anything if it already exists
+    # Create logs in current directory, does anything if it already exists
     os.makedirs("logs", exist_ok=True)
     logging.config.dictConfig(log_config)  # Loads config
 

@@ -9,7 +9,7 @@ from discord.ext import commands
 from discord.ext.commands import guild_only
 from sqlalchemy import insert, select, update, delete
 
-from pyboss import CONFIG, STATIC_DIR
+from pyboss import STATIC_DIR
 from pyboss.models import CalendarModel, NotebookModel, ScheduleRefModel
 from pyboss.utils import database
 from pyboss.wrappers.member import MemberWrapper
@@ -286,8 +286,9 @@ class Calendar(Schedule):
         embed = discord.Embed(
             colour=0x22CCFF, title="Cours à venir:", description=message
         )
-        embed.set_thumbnail(url=CONFIG["images"]["calendar"]["url"])
-        new_msg = await self.channel.send(embed=embed)
+        file = discord.File(STATIC_DIR / "img/book.jpg")
+        embed.set_thumbnail(url="attachment://book.jpg")
+        new_msg = await self.channel.send(file=file, embed=embed)
         await self.update_message_ref(new_msg)
 
 
@@ -355,8 +356,9 @@ class Notebook(Schedule):
         embed = discord.Embed(
             colour=0x22CCFF, title="Devoirs à faire:", description=message
         )
-        embed.set_thumbnail(url=CONFIG["images"]["notebook"]["url"])
-        new_msg = await self.channel.send(embed=embed)
+        file = discord.File(STATIC_DIR / "img/book.jpg")
+        embed.set_thumbnail(url="attachment://book.jpg")
+        new_msg = await self.channel.send(file=file, embed=embed)
         await self.update_message_ref(new_msg)
 
 
