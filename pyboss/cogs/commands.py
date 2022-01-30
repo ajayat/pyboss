@@ -33,7 +33,7 @@ class Commands(Cog):
         if len(videos) > 0:
             self.status = cycle(videos)
         else:
-            ctx.send("Aucune vidéo n'a été trouvée")
+            await ctx.send("Aucune vidéo n'a été trouvée")
 
     @tasks.loop(seconds=30)
     async def loop_status(self):

@@ -1,14 +1,13 @@
 import asyncio
-import itertools
 import logging
 import math
 import random
 import string
+import unicodedata
 from operator import itemgetter
 
 import discord
 from discord.ext.commands import Cog, command, guild_only
-from emoji import emojize
 from sqlalchemy import func, insert, select
 
 from pyboss.cogs.utils.checkers import is_quiz_channel
@@ -32,7 +31,7 @@ class Question:
         "Le temps est écoulé!",
         "ding ding it's finish",
         "Il est l'heure !",
-        "Allez hop on rembale !",
+        "Allez hop on remballe !",
         "Coulé est le temps",
         "Le dernier grain de sable est tombé dans le sablier",
         "Avez vous vu l'heure !? Temps terminé !",
@@ -57,7 +56,7 @@ class Question:
         Send a question in Quiz channel
 
         Question is a dict fetched from the quiz table that's contains field:
-        author - theme - question - propositions - response
+        author - theme - question - propositions - answer
         """
         embed = discord.Embed(
             title=self.title,
@@ -69,12 +68,10 @@ class Question:
         self.message = await self.channel.send(embed=embed)
 
         for line in self.propositions.split("\n"):
-            # line is of the form "A) This is a proposition"
-            if line:
-                # Get emoji from it name that's depends on the first letter
-                char = line[0].lower()
-                emoji = emojize(f":regional_indicator:{char}", use_aliases=True)
-                await self.message.add_reaction(emoji)
+            # Get emoji from it name that's depends on the first letter
+            char = line[0].lower()
+            emoji = unicodedata.lookup(f"REGIONAL INDICATOR SYMBOL LETTER {char}")
+            await self.message.add_reaction(emoji)
 
     async def send_rank(self) -> tuple[list, list]:
         """
@@ -90,16 +87,16 @@ class Question:
         description = "**Gagnants**: \n" if self.losers else ""
         nb_players = len(self.winners) + len(self.winners)
 
-        for id, i in zip(self.winners, itertools.count(1)):
-            member = self.guild.get_member(id)
+        for i, idw in enumerate(self.winners, 1):
+            member = MemberWrapper(self.guild.get_member_by_id(idw))
             score = win_score(nb_players, i, member.level)
             description += f"{i}. {member.name}: +{score}XP \n"
             member.xp += score
 
         description += "\n**Perdants**: \n" if self.losers else ""
-        for id in self.losers:
-            member = self.guild.get_member(id)
-            score = lose_score(nb_players)
+        for idl in self.losers:
+            member = MemberWrapper(self.guild.get_member_by_id(idl))
+            score = lose_score(member.level)
             description += f":small_red_triangle_down: {member.name}: -{score}XP \n"
             member.xp -= score
 
@@ -131,22 +128,26 @@ class Quiz(Cog):
         """
         msg = reaction.message
         question = self.actives.get(msg.channel.id)
-        if not question or reaction.count <= 1:
+        if player.id == self.bot.user.id or not question or reaction.count <= 1:
             return
 
         char = question.answer.lower()
-        emoji_answer = emojize(f"regional_indicator_{char}", use_aliases=True)
+        emoji_answer = unicodedata.lookup(f"REGIONAL INDICATOR SYMBOL LETTER {char}")
 
         for react in msg.reactions:
             async for user in react.users():
-                if react is reaction and user is player:  # Player's current reaction
+                if (
+                    react is reaction and user.id == player.id
+                ):  # Player's current reaction
                     if react.emoji == emoji_answer:
-                        question.player_wins.append(user.id)
-                        question.player_loses.remove(user.id)
+                        question.winners.append(user.id)
+                        if user.id in question.losers:
+                            question.losers.remove(user.id)
                     else:
-                        question.player_loses.append(user.id)
-                        question.player_wins.remove(user.id)
-                elif user is player:  # Removes previous user reaction
+                        question.losers.append(user.id)
+                        if user.id in question.winners:
+                            question.winners.remove(user.id)
+                elif user.id == player.id:  # Removes previous user reaction
                     await react.remove(user)
 
     @command(name="questions", aliases=["q", "question", "quiz"])
@@ -158,24 +159,24 @@ class Quiz(Cog):
         """
 
         def fetch_questions(number: int = 1):
-            rand = func.random if database.get_dialect() == "mysql" else func.rand
-            return database.execute(select(Question).order_by(rand()).limit(number))
+            return database.execute(
+                select(QuestionModel).order_by(func.random()).limit(number)
+            )
 
         if self.actives.get(ctx.channel.id):
             return
         self.scores.clear()
 
         for question_model in fetch_questions(nb_questions):
-            question = Question(self.bot, ctx.channel, question_model)
+            question = Question(self.bot, ctx.channel, question_model[0])
             await question.send()
             self.actives[ctx.channel.id] = question
             await asyncio.sleep(30.0)
-            await question.send_rank()
             del self.actives[ctx.channel.id]
 
             winners, _ = await question.send_rank()
-            for id in winners:
-                member = GuildWrapper(ctx.guild).get_member_by_id(id)
+            for idw in winners:
+                member = GuildWrapper(ctx.guild).get_member_by_id(idw)
                 self.scores[member.name] = self.scores.get(member.name, 0) + 1
 
         await self.get_rank(ctx)
@@ -235,23 +236,24 @@ class Quiz(Cog):
             )
         else:
             propositions = propositions.split("/")
-            response = None
+            answer = None
             for (i, p), letter in zip(enumerate(propositions), string.ascii_uppercase):
                 if p.strip().endswith("*"):
-                    response = letter
+                    answer = letter
                     p = p.rstrip("* ")
                 propositions[i] = f"{letter}) {p}"
 
-            if not response:
+            if not answer:
                 logger.error(f"The question {question} hasn't response or propositions")
             propositions = "\n".join(propositions)
             database.execute(
-                insert(Question).values(
+                insert(QuestionModel).values(
+                    guild_id=ctx.guild.id,
                     author=ctx.author.name,
                     theme=theme,
-                    question=question,
+                    title=question,
                     propositions=propositions,
-                    answer=response,
+                    answer=answer,
                 )
             )
             mod_member = MemberWrapper(ctx.author)

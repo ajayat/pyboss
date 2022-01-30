@@ -16,7 +16,6 @@ google-api-python-client = ">=2.1,<3.0"
 cached-property = ">=1.5,<2.0"
 sqlalchemy = ">=1.4.7,<2.0"
 youtube_dl = ">=2021.4.7,<2022"
-emoji = ">=1.2,<2.0"
 toml = "<1.0"
 psycopg2 = "*"
 
