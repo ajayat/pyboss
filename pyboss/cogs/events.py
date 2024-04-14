@@ -19,23 +19,17 @@ class EventsCog(Cog):
 
     @Cog.listener()
     async def on_ready(self):
-        """
-        When client is connected
-        """
+        """When client is connected"""
         print(f"\n{' READY ':>^80}\n")
 
     @Cog.listener()
     async def on_guild_join(self, guild):
-        """
-        When client is invited to a guild
-        """
+        """When client is invited to a guild"""
         database.execute(insert(GuildModel).values(id=guild.id, name=guild.name))
 
     @Cog.listener()
     async def on_member_join(self, member):
-        """
-        When a member join a guild, insert it in database or restore all its data
-        """
+        """When a member join a guild, insert it in database or restore all its data"""
         member = MemberWrapper(member)
         if member.exists():
             await member.add_roles(
@@ -65,9 +59,7 @@ class EventsCog(Cog):
 
     @Cog.listener()
     async def on_message(self, msg):
-        """
-        Log message in database and obtain few XP
-        """
+        """Log message in database and obtain few XP"""
         if not msg.author.bot:
             MessageWrapper(msg).insert()
         if isinstance(msg.channel, discord.TextChannel):
@@ -79,9 +71,7 @@ class EventsCog(Cog):
 
     @Cog.listener()
     async def on_member_update(self, before, after):
-        """
-        Check if a member has updated roles and modifies them in the database
-        """
+        """Check if a member has updated roles and modifies them in the database"""
         if before.roles == after.roles:
             return
 

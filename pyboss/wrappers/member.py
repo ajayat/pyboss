@@ -21,9 +21,7 @@ class MemberWrapper:
     """
 
     def __init__(self, member: discord.Member):
-        """
-        Représente a member with additional attributes
-        """
+        """Représente a member with additional attributes"""
         self.member = member
         self.guild = GuildWrapper(member.guild)
         self.__model = self._fetch()
@@ -32,9 +30,7 @@ class MemberWrapper:
         return getattr(self.member, name)
 
     def _fetch(self) -> Optional[MemberModel]:
-        """
-        Fetch from the database and returns the member if exists
-        """
+        """Fetch from the database and returns the member if exists"""
         try:
             return database.execute(
                 select(MemberModel).where(MemberModel.id == self.member.id)
@@ -43,17 +39,13 @@ class MemberWrapper:
             return None
 
     def update(self, **kwargs):
-        """
-        Accept keyword arguments only matching with a column in members table
-        """
+        """Accept keyword arguments only matching with a column in members table"""
         database.execute(
             update(MemberModel).where(MemberModel.id == self.member.id).values(**kwargs)
         )
 
     def register(self) -> NoReturn:
-        """
-        Insert the member in table, with optionals attributes
-        """
+        """Insert the member in table, with optionals attributes"""
         database.execute(
             insert(MemberModel).values(id=self.member.id, name=self.member.name)
         )

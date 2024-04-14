@@ -6,9 +6,7 @@ from pyboss import cogs
 
 
 def find_available_cogs() -> Iterator[Any]:
-    """
-    Yields all available cogs from the cogs sub folder
-    """
+    """Yields all available cogs from the cogs sub folder"""
 
     def on_error(name: str) -> NoReturn:
         raise ImportError(name=name)

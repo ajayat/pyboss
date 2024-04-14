@@ -10,9 +10,7 @@ ytdl = youtube_dl.YoutubeDL()
 
 
 class Video:
-    """
-    Represents a video with stream url and name extracted by youtube_dl
-    """
+    """Represents a video with stream url and name extracted by youtube_dl"""
 
     def __init__(self, name, url):
         video = ytdl.extract_info(url, download=False)
@@ -23,9 +21,7 @@ class Video:
 
 
 class Music(Cog):
-    """
-    Offers an interface with typical commands to play music in voice channel
-    """
+    """Offers an interface with typical commands to play music in voice channel"""
 
     def __init__(self, bot):
         self.bot = bot
@@ -34,9 +30,7 @@ class Music(Cog):
     @command(name="play", aliases=["p"])
     @guild_only()
     async def play(self, ctx, *params):
-        """
-        Joue la musique correspondante à la recherche
-        """
+        """Joue la musique correspondante à la recherche"""
         voice_client = ctx.guild.voice_client
         query = " ".join(params)
         try:
@@ -62,9 +56,7 @@ class Music(Cog):
             await ctx.send("Vous n'êtes pas connecté à un salon vocal")
 
     def play_song(self, voice_client, queue, song):
-        """
-        Coroutine to play a song
-        """
+        """Coroutine to play a song"""
         source = discord.PCMVolumeTransformer(
             discord.FFmpegPCMAudio(
                 song.stream_url,
@@ -89,9 +81,7 @@ class Music(Cog):
     @command()
     @guild_only()
     async def skip(self, ctx):
-        """
-        Passer à la musique suivante, si disponible
-        """
+        """Passer à la musique suivante, si disponible"""
         voice_client = ctx.guild.voice_client
         try:
             voice_client.stop()
@@ -118,9 +108,7 @@ class Music(Cog):
     @command(aliases=["quit"])
     @guild_only()
     async def leave(self, ctx):
-        """
-        Arrêter la musique et la queue
-        """
+        """Arrêter la musique et la queue"""
         voice_client = ctx.guild.voice_client
         await voice_client.disconnect()
         self.musics[ctx.guild] = []

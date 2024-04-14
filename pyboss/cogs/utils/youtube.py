@@ -9,9 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def search(query: str, n=1) -> Generator[dict, None, None]:
-    """
-    Search video on YouTube matching the query
-    """
+    """Search video on YouTube matching the query"""
     try:
         youtube = build("youtube", "v3", developerKey=os.getenv("API_DEVELOPER_KEY"))
         response = (

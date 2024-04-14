@@ -23,9 +23,7 @@ else:
 
 
 def test_connection():
-    """
-    Tests if the connection to the database.
-    """
+    """Tests if the connection to the database."""
     try:
         engine.connect()  # test connection
     except (
@@ -45,9 +43,7 @@ def test_connection():
 
 
 def execute(stmt):
-    """
-    Creates a Session to execute the given statement.
-    """
+    """Creates a Session to execute the given statement."""
     with Session(engine, autocommit=True) as session:
         try:
             # https://docs.sqlalchemy.org/en/14/errors.html#error-lkrp
@@ -69,9 +65,7 @@ def get_dialect() -> str:
 
 
 def array_to_string(arr, attr=None) -> str:
-    """
-    Joins values to store the data in MySQL column.
-    """
+    """Joins values to store the data in MySQL column."""
     if attr:
         # https://docs.python.org/3/library/operator.html#operator.attrgetter
         arr = map(attrgetter(attr), arr)

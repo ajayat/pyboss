@@ -26,7 +26,5 @@ class ErrorHandler(Cog):
 
 
 def setup(bot) -> None:
-    """
-    Loads the ErrorHandler cog.
-    """
+    """Loads the ErrorHandler cog."""
     bot.add_cog(ErrorHandler(bot))
