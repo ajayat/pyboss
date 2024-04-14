@@ -22,9 +22,7 @@ class Commands(Cog):
     @guild_only()
     @is_guild_owner()
     async def change_status(self, ctx, *params):
-        """
-        Change le status du bot par des vidéos correspondantes à la recherche
-        """
+        """Change le status du bot par des vidéos correspondantes à la recherche"""
         query = " ".join(params)
         videos = []
         for video in youtube.search(query, n=50):
@@ -49,26 +47,20 @@ class Commands(Cog):
     @command()
     @guild_only()
     async def clear(self, ctx, n: int = 1):
-        """
-        Supprime les n message du salon
-        """
+        """Supprime les n message du salon"""
         await ctx.channel.purge(limit=int(n) + 1)
 
     @command()
     @guild_only()
     async def send(self, ctx, *, message: str):
-        """
-        Envoie un message dans le salon actuel
-        """
+        """Envoie un message dans le salon actuel"""
         await ctx.send(message)
         await ctx.message.delete()
 
     @command(name="profile", aliases=["member_info"])
     @guild_only()
     async def profile(self, ctx, member: Optional[discord.Member]):
-        """
-        Consulter les infos d'un membre
-        """
+        """Consulter les infos d'un membre"""
         if not member:
             member = ctx.author
 

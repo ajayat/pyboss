@@ -12,9 +12,7 @@ from .utils.checkers import is_suggestion_channel
 
 
 class Suggestion(Cog):
-    """
-    Offers commands to allow members to propose suggestions and interact with them
-    """
+    """Offers commands to allow members to propose suggestions and interact with them"""
 
     def __init__(self, bot):
         self.bot = bot
@@ -23,9 +21,7 @@ class Suggestion(Cog):
     @is_owner()
     @check(is_suggestion_channel)
     async def send_suggestions_rules(self, ctx):
-        """
-        Send the rules for suggestion channel
-        """
+        """Send the rules for suggestion channel"""
         await ctx.message.delete()
         with open(STATIC_DIR / "text/suggestions_rules.md", encoding="utf-8") as f:
             content = f.read()
@@ -49,9 +45,7 @@ class Suggestion(Cog):
 
     @Cog.listener("on_raw_reaction_add")
     async def decisive_reaction(self, payload):
-        """
-        Send result to all users when the owner add a reaction
-        """
+        """Send result to all users when the owner add a reaction"""
         channel = self.bot.get_channel(payload.channel_id)
         try:
             message = await channel.fetch_message(payload.message_id)

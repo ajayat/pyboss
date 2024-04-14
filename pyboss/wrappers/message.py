@@ -16,9 +16,7 @@ class MessageWrapper:
         return getattr(self.message, name)
 
     def insert(self) -> NoReturn:
-        """
-        Inserts a message row in messages table
-        """
+        """Inserts a message row in messages table"""
         if isinstance(self.message.channel, discord.DMChannel):
             channel, guild_id = "DMChannel", None
         else:

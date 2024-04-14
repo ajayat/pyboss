@@ -74,9 +74,7 @@ class Question:
             await self.message.add_reaction(emoji)
 
     async def send_rank(self) -> tuple[list, list]:
-        """
-        Check reactions, send a rank info and adjust XP of the members
-        """
+        """Check reactions, send a rank info and adjust XP of the members"""
 
         def win_score(n, coef, level):
             return math.ceil(((200 + level) * math.sqrt(n)) / (math.sqrt(coef) * level))
@@ -112,9 +110,7 @@ class Question:
 
 
 class Quiz(Cog):
-    """
-    Quiz can permit obtaining XP and level up...
-    """
+    """Quiz can permit obtaining XP and level up..."""
 
     def __init__(self, bot):
         self.bot = bot
@@ -123,9 +119,7 @@ class Quiz(Cog):
 
     @Cog.listener("on_reaction_add")
     async def _reaction_on_question(self, reaction, player: discord.User):
-        """
-        Remove ex reactions of the user in a quiz question
-        """
+        """Remove ex reactions of the user in a quiz question"""
         msg = reaction.message
         question = self.actives.get(msg.channel.id)
         if player.id == self.bot.user.id or not question or reaction.count <= 1:
@@ -154,9 +148,7 @@ class Quiz(Cog):
     @guild_only()
     @is_quiz_channel()
     async def questions(self, ctx, nb_questions: int = 1):
-        """
-        Génère n questions ou une seule si aucun argument n'est donné.
-        """
+        """Génère n questions ou une seule si aucun argument n'est donné."""
 
         def fetch_questions(number: int = 1):
             return database.execute(
@@ -185,9 +177,7 @@ class Quiz(Cog):
     @guild_only()
     @is_quiz_channel()
     async def get_rank(self, ctx):
-        """
-        Affiche le classement de la partie en cours
-        """
+        """Affiche le classement de la partie en cours"""
         if not self.actives.get(ctx.channel.id):
             return
         titre, description = "Classements du Quiz:", ""
@@ -205,9 +195,7 @@ class Quiz(Cog):
     @command(name="question_add", aliases=["q_add"])
     @is_quiz_channel()
     async def question_add_procedure(self, ctx):
-        """
-        Ajouter une question dans la base de donnée (procedure)
-        """
+        """Ajouter une question dans la base de donnée (procedure)"""
         await ctx.message.delete()
 
         async def send_question(q: str, timeout=60.0) -> str:

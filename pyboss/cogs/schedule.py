@@ -81,9 +81,7 @@ class Schedule:
 
     @staticmethod
     async def update_message_ref(message: discord.Message):
-        """
-        Update id of agenda or planning message in database
-        """
+        """Update id of agenda or planning message in database"""
         ref_model = database.execute(
             select(ScheduleRefModel).where(
                 ScheduleRefModel.channel_id == message.channel.id,
@@ -159,9 +157,7 @@ class Schedule:
         return True
 
     def is_date_valid(self, msg: discord.Message):
-        """
-        Check with a regex the data as user input, can accept several formats
-        """
+        """Check with a regex the data as user input, can accept several formats"""
         if msg.channel != self.channel or msg.author.id != self.author.id:
             return False
 
@@ -216,9 +212,7 @@ class Calendar(Schedule):
         super().__init__(ctx, CalendarModel)
 
     async def rules(self):
-        """
-        Send the rules for planning or agenda channel
-        """
+        """Send the rules for planning or agenda channel"""
         with open(STATIC_DIR / "text/calendar_rules.md") as calendar:
             content = calendar.read()
             title = "Fonctionnement du planning"
@@ -265,9 +259,7 @@ class Calendar(Schedule):
             await self.delete_traced_msg()
 
     async def update(self):
-        """
-        Fetch the database to get the list of rows ordered by date
-        """
+        """Fetch the database to get the list of rows ordered by date"""
         next_date, message = None, ""
         for row in self.get_data(CalendarModel):
             date = row[0].date
@@ -297,9 +289,7 @@ class Notebook(Schedule):
         super().__init__(ctx, NotebookModel)
 
     async def rules(self):
-        """
-        Send the rules for planning or agenda channel
-        """
+        """Send the rules for planning or agenda channel"""
         with open(STATIC_DIR / "text/notebook_rules.md") as notebook:
             content = notebook.read()
             title = "Fonctionnement de l'agenda"
@@ -340,9 +330,7 @@ class Notebook(Schedule):
             await self.delete_traced_msg()
 
     async def update(self):
-        """
-        Fetch the database to get the list of rows ordered by date
-        """
+        """Fetch the database to get the list of rows ordered by date"""
         next_date, message = None, ""
         for row in self.get_data(NotebookModel):
             date = row[0].date

@@ -35,9 +35,7 @@ class Roles(Cog):
             self.reacts_pairs = json.load(f)
 
     async def send_choice(self, ctx, name: str) -> discord.Message:
-        """
-        Generate a welcome message to choice roles to manage permissions
-        """
+        """Generate a welcome message to choice roles to manage permissions"""
         with open(STATIC_DIR / f"text/{name}.md", encoding="utf-8") as content:
             embed = discord.Embed(
                 title="Bienvenue!", colour=0xFF22FF, description=content.read()
@@ -56,9 +54,7 @@ class Roles(Cog):
     @command(name="guild_choice", hidden=True)
     @is_owner()
     async def send_guild_choice(self, ctx):
-        """
-        Generate a welcome message to choice a role in order to manage permissions
-        """
+        """Generate a welcome message to choice a role in order to manage permissions"""
         await ctx.message.delete()
         message = await self.send_choice(ctx, "guild_choice")
 
@@ -70,9 +66,7 @@ class Roles(Cog):
 
     @Cog.listener("on_raw_reaction_add")
     async def reaction_guild_choice(self, payload):
-        """
-        Update top role or send a DM message to the user to choice his sub roles
-        """
+        """Update top role or send a DM message to the user to choice his sub roles"""
         if not hasattr(payload, "guild_id"):
             return  # guild only
         guild_model = database.execute(
@@ -100,9 +94,7 @@ class Roles(Cog):
     @Cog.listener("on_raw_reaction_add")
     @Cog.listener("on_raw_reaction_remove")
     async def reaction_sub_role_add(self, payload):
-        """
-        React when a member choice his roles in DM channel
-        """
+        """React when a member choice his roles in DM channel"""
         if hasattr(payload, "guild_id"):
             return  # dm only
 
@@ -140,9 +132,7 @@ class Roles(Cog):
             member.sub_roles -= {role}
 
     async def send_sub_roles_validate(self, member: discord.Member | MemberWrapper):
-        """
-        Update sub roles list in json file
-        """
+        """Update sub roles list in json file"""
         embed = discord.Embed(
             title="Confirmation",
             colour=0xFF22FF,
